@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Biela - Manivela - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #f97316;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-orange-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/20 text-slate-950 font-black">
+        <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="6" cy="12" r="3" stroke-width="2.5"/>
+          <line x1="8.5" y1="10.5" x2="16.5" y2="7.5" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="16" y="5" width="6" height="5" rx="1.5" stroke-width="2"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Mecanismo Biela - Manivela (Émbolo / Pistón)
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-orange-500/20 text-orange-400 border border-orange-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Tecnología y Digitalización · Transformación Circular Continuo ⇄ Lineal Alternativo</p>
+      </div>
+    </div>
+
+    <!-- Indicador de modo operativo y reversibilidad -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <div class="flex items-center gap-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
+        <span class="h-2.5 w-2.5 rounded-full bg-orange-400 animate-pulse"></span>
+        <span class="text-slate-300 font-medium">Modo:</span>
+        <span id="badge-mode" class="text-orange-400 font-bold uppercase tracking-wider text-[11px]">Rotativo ➔ Alternativo (Compresor)</span>
+      </div>
+      <span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+        🔄 Mecanismo Reversible (Bidireccional)
+      </span>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1750px] w-full mx-auto">
+
+    <!-- Área de Simulación en Canvas -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[530px] justify-between">
+        
+        <!-- Tarjetas flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Manivela -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-orange-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-orange-400 ring-4 ring-orange-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-orange-400 uppercase tracking-wider flex items-center gap-1">
+                Manivela / Volante (Giro) <span id="crank-role-tag" class="text-[9px] bg-orange-500/20 px-1 rounded text-orange-300">MOTOR</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-r">r = 60 mm</span>
+                <span class="text-slate-600">|</span>
+                <span id="label-rpm" class="text-orange-300 font-mono-code">20.0 RPM</span>
+                <span class="text-slate-600">|</span>
+                <span id="label-theta" class="text-slate-300 font-mono-code text-xs">θ = 0.0°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Biela y Pistón -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-cyan-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 ring-4 ring-cyan-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1">
+                Biela y Pistón (Carrera) <span id="piston-role-tag" class="text-[9px] bg-cyan-500/20 px-1 rounded text-cyan-300">CONDUCIDO</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-l">L = 160 mm</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-stroke" class="text-amber-300 font-mono-code">C = 120 mm</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-vel-linear" class="text-cyan-300 font-mono-code text-xs">v = 0.0 mm/s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2 min-h-[420px]">
+          <canvas id="crankCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Barra de Control Inferior -->
+        <div class="bg-slate-950/95 border-t border-slate-800 p-4 px-6 flex flex-col gap-3.5 z-10">
+          
+          <!-- Fila 1 de Controles: Radio manivela r, Longitud biela L, Modo -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pb-3 border-b border-slate-800/80">
+            <!-- Radio de la Manivela (r) -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-orange-500/30">
+              <span class="text-xs font-bold text-orange-400 whitespace-nowrap">Radio (r):</span>
+              <input id="slider-r" type="range" min="40" max="100" step="5" value="60" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500">
+              <div class="flex items-center gap-1">
+                <button id="btn-r-dec" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">-</button>
+                <span id="val-r" class="font-mono-code text-sm font-bold text-orange-300 w-11 text-center">60 mm</span>
+                <button id="btn-r-inc" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">+</button>
+              </div>
+            </div>
+
+            <!-- Longitud de la Biela (L) -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-cyan-500/30">
+              <span class="text-xs font-bold text-cyan-400 whitespace-nowrap">Biela (L):</span>
+              <input id="slider-l" type="range" min="120" max="250" step="5" value="160" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+              <div class="flex items-center gap-1">
+                <button id="btn-l-dec" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">-</button>
+                <span id="val-l" class="font-mono-code text-sm font-bold text-cyan-300 w-12 text-center">160 mm</span>
+                <button id="btn-l-inc" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">+</button>
+              </div>
+            </div>
+
+            <!-- Inversión de Modo Cinemático -->
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle-mode" class="w-full py-2 px-3 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5" title="Conmutar si el motor gira la manivela o el pistón empuja la biela">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <span id="mode-text-btn">Modo: Rotativo ➔ Alternativo</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fila 2 de Controles: Reproducción, Dirección, RPM y Ayudas -->
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-slate-950 font-bold rounded-xl flex items-center gap-2 transition active:scale-95 shadow-md shadow-orange-600/30">
+                <svg id="play-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                </svg>
+                <svg id="pause-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="btn-text">Pausar</span>
+              </button>
+
+              <button id="btn-step" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5" title="Avanzar 10 grados">
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
+                </svg>
+                <span>Paso +10°</span>
+              </button>
+
+              <button id="btn-direction" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-2" title="Alternar sentido horario / antihorario">
+                <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span id="dir-text">Giro Horario ↻</span>
+              </button>
+
+              <button id="btn-reset" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-medium transition active:scale-95 flex items-center gap-2" title="Poner en PMS (θ = 0°)">
+                <span>Ir a PMS (θ=0°)</span>
+              </button>
+            </div>
+
+            <!-- Slider de Velocidad N (RPM) -->
+            <div class="flex items-center gap-3 flex-1 max-w-sm min-w-[220px]">
+              <span class="text-xs font-semibold text-slate-400 whitespace-nowrap">Velocidad (N):</span>
+              <input id="slider-rpm" type="range" min="0" max="60" step="1" value="20" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500">
+              <span id="slider-val" class="font-mono-code text-sm font-bold text-orange-400 w-16 text-right">20 rpm</span>
+            </div>
+
+            <!-- Opciones didácticas -->
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-deadpoints" checked class="rounded border-slate-700 text-orange-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Marcas PMS y PMI</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-trace" checked class="rounded border-slate-700 text-orange-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Circunferencia de muñequilla</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-vectors" checked class="rounded border-slate-700 text-orange-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Vectores ω y v</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Telemetría Cinemática en Vivo -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Tarjeta Posición del Pistón x(θ) -->
+        <div class="bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-cyan-400 font-bold uppercase tracking-wide mb-1">
+            <span>Posición del Pistón x(θ)</span>
+            <span id="tag-stroke-phase" class="text-slate-400 font-normal">En avance</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-pos-x" class="text-3xl font-extrabold font-mono-code text-cyan-400">220.0</span>
+              <span class="text-xs text-cyan-300 font-semibold font-mono-code ml-1">mm</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              Desde O: (<span id="counter-dist-pms" class="text-slate-200 font-bold">0.0</span> mm de PMS)
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-piston" class="bg-cyan-500 h-full rounded-full transition-all duration-75" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Velocidad Instantánea v(θ) -->
+        <div class="bg-slate-900/90 border border-orange-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-orange-400 font-bold uppercase tracking-wide mb-1">
+            <span>Velocidad Instantánea (v)</span>
+            <span id="tag-vel-state" class="text-slate-400 font-normal font-mono-code">v = 0 en PMS/PMI</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-speed-v" class="text-3xl font-extrabold font-mono-code text-orange-400">0.0</span>
+              <span class="text-xs text-orange-300 font-semibold font-mono-code ml-1">mm/s</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              v_máx ≈ <span id="counter-vmax" class="text-slate-200 font-bold">125.7</span> mm/s
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-speed" class="bg-orange-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Carrera del Pistón (C = 2r) -->
+        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center shadow-lg">
+          <div class="text-xs text-amber-300 font-bold uppercase tracking-wide mb-1">
+            Carrera Total (C = 2 · r)
+          </div>
+          <div class="flex items-baseline gap-2 my-1">
+            <span id="counter-stroke-val" class="text-2xl font-black font-mono-code text-amber-400">120</span>
+            <span class="text-xs text-slate-400 font-medium font-mono-code">mm</span>
+          </div>
+          <p id="stroke-description" class="text-[11px] text-slate-400 leading-tight">
+            La distancia total entre <b class="text-rose-400">PMI</b> y <b class="text-emerald-400">PMS</b> depende <b>exclusivamente</b> del radio de la manivela: <b class="text-white">C = 2 · 60 = 120 mm</b>.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+            <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
+            </svg>
+            Fundamentos de Tecnología (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Mecanismos de transformación de movimiento: circular continuo ⇄ lineal alternativo.</p>
+        </div>
+
+        <!-- 1. Los 3 Elementos Fundamentales -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-orange-400 uppercase tracking-wider block mb-2">1. Elementos del Mecanismo</span>
+          <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+            <div>• <b class="text-orange-300">Manivela / Cigüeñal:</b> Barra rígida unida a un eje de giro $O$. Describe una trayectoria circular de radio $r$.</div>
+            <div>• <b class="text-cyan-300">Biela:</b> Barra de longitud $L$ con dos articulaciones (cojinete de cabeza en la manivela y cojinete de pie en el émbolo). Transmite el empuje.</div>
+            <div>• <b class="text-amber-300">Émbolo / Pistón:</b> Pieza cilíndrica confinada en una guía rectilínea. Solo puede moverse en línea recta.</div>
+          </div>
+        </div>
+
+        <!-- 2. La Carrera y los Puntos Muertos (PMS y PMI) -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">2. PMS, PMI y Carrera</span>
+            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono-code font-bold">Carrera C = 2·r</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed mb-2">
+            El pistón se detiene por un instante en los dos extremos de su recorrido para invertir el sentido de su marcha:
+          </p>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono-code text-xs text-slate-200 space-y-1.5">
+            <div class="flex justify-between items-center">
+              <span class="text-emerald-400 font-bold">PMS (Punto Muerto Superior):</span>
+              <span id="formula-pms">x = L + r = 220 mm</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-rose-400 font-bold">PMI (Punto Muerto Inferior):</span>
+              <span id="formula-pmi">x = L - r = 100 mm</span>
+            </div>
+            <div class="flex justify-between items-center text-amber-300 pt-1 border-t border-slate-800 font-bold">
+              <span>Carrera C = x_PMS - x_PMI:</span>
+              <span id="formula-c">C = 2 · r = 120 mm</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 leading-relaxed">
+            <b>Pregunta de examen:</b> Si cambiamos la biela por otra más larga ($L$), la posición se aleja, ¡pero la carrera <b class="text-white">sigue siendo exactamente $2r$</b>! La longitud de la biela no altera la carrera.
+          </div>
+        </div>
+
+        <!-- 3. Cinemática y Velocidad Lineal -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-2">3. Ecuación Cinemática Exacta</span>
+          <p class="text-xs text-slate-300 leading-relaxed mb-2">
+            La posición del pistón respecto al centro de giro $O$ en función del ángulo $\theta$ es:
+          </p>
+          <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800 font-mono-code text-center text-xs text-cyan-300">
+            x(θ) = r · cos(θ) + √( L² - r² · sen²(θ) )
+          </div>
+          <div class="mt-2 text-xs text-slate-300 space-y-1">
+            <div>• En <b>PMS ($\theta = 0^\circ$)</b> y <b>PMI ($\theta = 180^\circ$)</b>: La velocidad lineal es <b>$v = 0$</b>.</div>
+            <div>• En torno a <b>$\theta \approx 75^\circ - 90^\circ$</b>: El pistón alcanza su <b>velocidad máxima ($v_{\text{máx}}$)</b>.</div>
+          </div>
+        </div>
+
+        <!-- 4. Reversibilidad y Aplicaciones en el Mundo Real -->
+        <div class="bg-indigo-950/40 rounded-xl p-4 border border-indigo-500/40">
+          <div class="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider mb-2">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            4. Reversibilidad y Casos Reales
+          </div>
+          <div class="text-xs text-slate-300 space-y-2">
+            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+              <b class="text-orange-300">Circular ➔ Lineal:</b> Un motor eléctrico hace girar la manivela y el pistón comprime aire (<b>compresor</b>) o empuja la aguja (<b>máquina de coser</b>).
+            </div>
+            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+              <b class="text-cyan-300">Lineal ➔ Circular:</b> La fuerza de la explosión del combustible (<b>motor de coche</b>) o la presión del vapor (<b>locomotora clásica</b>) empuja el pistón y hace rodar las ruedas.
+            </div>
+          </div>
+        </div>
+
+        <!-- Reto Escolar para el Alumnado -->
+        <div class="bg-gradient-to-br from-orange-950/40 to-slate-900 p-4 rounded-xl border border-orange-500/30">
+          <h3 class="text-xs font-bold text-orange-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span>💡 Reto para la clase:</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Pulsa el botón <b class="text-white">"Paso +10°"</b> despacio. Observa en qué ángulos la velocidad $v$ del pistón es exactamente cero y en qué posición la aguja del velocímetro marca el valor más alto.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Script de Simulación Cinemática -->
+  <script>
+    // --- VARIABLES Y PARÁMETROS CINEMÁTICOS ---
+    let crank_r = 60;     // Radio de la manivela en mm (40 a 100)
+    let rod_L = 160;      // Longitud de la biela en mm (120 a 250)
+    let rpm = 20.0;       // Velocidad de giro de la manivela en RPM
+    let direction = 1;    // 1: Horario, -1: Antihorario
+    let isRunning = true;
+    let driveMode = 'rot_to_lin'; // 'rot_to_lin' o 'lin_to_rot'
+
+    // Opciones didácticas
+    let showDeadPoints = true;
+    let showTrace = true;
+    let showVectors = true;
+
+    // Estado físico acumulado
+    let theta = 0; // Ángulo de la manivela en radianes (0 = PMS)
+
+    // Referencias DOM
+    const canvas = document.getElementById('crankCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnStep = document.getElementById('btn-step');
+    const btnReset = document.getElementById('btn-reset');
+    const btnDirection = document.getElementById('btn-direction');
+    const dirText = document.getElementById('dir-text');
+    const btnToggleMode = document.getElementById('btn-toggle-mode');
+    const modeTextBtn = document.getElementById('mode-text-btn');
+    const badgeMode = document.getElementById('badge-mode');
+    const crankRoleTag = document.getElementById('crank-role-tag');
+    const pistonRoleTag = document.getElementById('piston-role-tag');
+
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+
+    const sliderR = document.getElementById('slider-r');
+    const valR = document.getElementById('val-r');
+    const btnRDec = document.getElementById('btn-r-dec');
+    const btnRInc = document.getElementById('btn-r-inc');
+
+    const sliderL = document.getElementById('slider-l');
+    const valL = document.getElementById('val-l');
+    const btnLDec = document.getElementById('btn-l-dec');
+    const btnLInc = document.getElementById('btn-l-inc');
+
+    const sliderRpm = document.getElementById('slider-rpm');
+    const sliderVal = document.getElementById('slider-val');
+
+    const headerR = document.getElementById('header-r');
+    const headerL = document.getElementById('header-l');
+    const headerStroke = document.getElementById('header-stroke');
+    const headerVelLinear = document.getElementById('header-vel-linear');
+    const labelRpm = document.getElementById('label-rpm');
+    const labelTheta = document.getElementById('label-theta');
+
+    const counterPosX = document.getElementById('counter-pos-x');
+    const counterDistPms = document.getElementById('counter-dist-pms');
+    const progPiston = document.getElementById('prog-piston');
+    const tagStrokePhase = document.getElementById('tag-stroke-phase');
+
+    const counterSpeedV = document.getElementById('counter-speed-v');
+    const counterVmax = document.getElementById('counter-vmax');
+    const progSpeed = document.getElementById('prog-speed');
+    const tagVelState = document.getElementById('tag-vel-state');
+
+    const counterStrokeVal = document.getElementById('counter-stroke-val');
+    const strokeDescription = document.getElementById('stroke-description');
+    const formulaPms = document.getElementById('formula-pms');
+    const formulaPmi = document.getElementById('formula-pmi');
+    const formulaC = document.getElementById('formula-c');
+
+    const chkDeadPoints = document.getElementById('chk-deadpoints');
+    const chkTrace = document.getElementById('chk-trace');
+    const chkVectors = document.getElementById('chk-vectors');
+
+    // Adaptación responsive del Canvas
+    let cw = 0, ch = 0;
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cw = rect.width;
+      ch = rect.height;
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Gestión del Radio de la Manivela (r)
+    function setCrankR(newR) {
+      const parsedR = Math.max(40, Math.min(100, parseInt(newR)));
+      // Garantizar condición física L > r con margen de seguridad
+      if (rod_L <= parsedR + 20) {
+        setRodL(parsedR + 30);
+      }
+      crank_r = parsedR;
+      sliderR.value = crank_r;
+      valR.textContent = `${crank_r} mm`;
+      updateCalculations();
+    }
+    sliderR.addEventListener('input', (e) => setCrankR(e.target.value));
+    btnRDec.addEventListener('click', () => setCrankR(crank_r - 5));
+    btnRInc.addEventListener('click', () => setCrankR(crank_r + 5));
+
+    // Gestión de la Longitud de la Biela (L)
+    function setRodL(newL) {
+      let parsedL = Math.max(120, Math.min(250, parseInt(newL)));
+      if (parsedL <= crank_r + 20) {
+        parsedL = crank_r + 25;
+      }
+      rod_L = parsedL;
+      sliderL.value = rod_L;
+      valL.textContent = `${rod_L} mm`;
+      updateCalculations();
+    }
+    sliderL.addEventListener('input', (e) => setRodL(e.target.value));
+    btnLDec.addEventListener('click', () => setRodL(rod_L - 5));
+    btnLInc.addEventListener('click', () => setRodL(rod_L + 5));
+
+    // Conmutador del Modo de Funcionamiento (Reversibilidad)
+    btnToggleMode.addEventListener('click', () => {
+      if (driveMode === 'rot_to_lin') {
+        driveMode = 'lin_to_rot';
+        modeTextBtn.textContent = "Modo: Alternativo ➔ Rotativo";
+        badgeMode.textContent = "Alternativo ➔ Rotativo (Motor Coche)";
+        badgeMode.className = "text-cyan-400 font-bold uppercase tracking-wider text-[11px]";
+        crankRoleTag.textContent = "CONDUCIDO";
+        crankRoleTag.className = "text-[9px] bg-slate-800 px-1 rounded text-slate-400 border border-slate-700";
+        pistonRoleTag.textContent = "MOTOR (FUERZA)";
+        pistonRoleTag.className = "text-[9px] bg-cyan-500/20 px-1 rounded text-cyan-300 border border-cyan-500/40";
+      } else {
+        driveMode = 'rot_to_lin';
+        modeTextBtn.textContent = "Modo: Rotativo ➔ Alternativo";
+        badgeMode.textContent = "Rotativo ➔ Alternativo (Compresor)";
+        badgeMode.className = "text-orange-400 font-bold uppercase tracking-wider text-[11px]";
+        crankRoleTag.textContent = "MOTOR";
+        crankRoleTag.className = "text-[9px] bg-orange-500/20 px-1 rounded text-orange-300 border border-orange-500/40";
+        pistonRoleTag.textContent = "CONDUCIDO";
+        pistonRoleTag.className = "text-[9px] bg-slate-800 px-1 rounded text-slate-400 border border-slate-700";
+      }
+    });
+
+    // Control de Dirección de Giro
+    btnDirection.addEventListener('click', () => {
+      direction *= -1;
+      dirText.textContent = direction === 1 ? "Giro Horario ↻" : "Giro Antihorario ↺";
+    });
+
+    // Control de Velocidad RPM
+    sliderRpm.addEventListener('input', (e) => {
+      rpm = parseFloat(e.target.value);
+      sliderVal.textContent = `${rpm.toFixed(0)} rpm`;
+      updateCalculations();
+    });
+
+    // Botón Paso +10°
+    btnStep.addEventListener('click', () => {
+      if (isRunning) {
+        btnToggle.click(); // Pausar primero
+      }
+      theta += direction * (10 * Math.PI / 180);
+      updateTelemetry();
+    });
+
+    // Botón Reset / PMS
+    btnReset.addEventListener('click', () => {
+      theta = 0;
+      updateTelemetry();
+    });
+
+    // Play / Pause
+    btnToggle.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        btnText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        lastTimestamp = performance.now();
+      } else {
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    });
+
+    // Checkboxes
+    chkDeadPoints.addEventListener('change', (e) => { showDeadPoints = e.target.checked; });
+    chkTrace.addEventListener('change', (e) => { showTrace = e.target.checked; });
+    chkVectors.addEventListener('change', (e) => { showVectors = e.target.checked; });
+
+    // Actualización de Fórmulas y Rótulos Estáticos
+    function updateCalculations() {
+      const stroke = 2 * crank_r;
+      const x_pms = rod_L + crank_r;
+      const x_pmi = rod_L - crank_r;
+
+      headerR.textContent = `r = ${crank_r} mm`;
+      headerL.textContent = `L = ${rod_L} mm`;
+      headerStroke.textContent = `C = ${stroke} mm`;
+      labelRpm.textContent = `${rpm.toFixed(1)} RPM`;
+
+      counterStrokeVal.textContent = stroke;
+      strokeDescription.innerHTML = `La distancia total entre <b class="text-rose-400">PMI</b> y <b class="text-emerald-400">PMS</b> depende <b>exclusivamente</b> del radio de la manivela: <b class="text-white">C = 2 · ${crank_r} = ${stroke} mm</b>.`;
+
+      formulaPms.textContent = `x = ${rod_L} + ${crank_r} = ${x_pms} mm`;
+      formulaPmi.textContent = `x = ${rod_L} - ${crank_r} = ${x_pmi} mm`;
+      formulaC.textContent = `C = 2 · ${crank_r} = ${stroke} mm`;
+
+      // Velocidad máxima aproximada: v_max ≈ omega * r * (1 + lambda/2) donde lambda = r/L
+      const omega = 2 * Math.PI * (rpm / 60.0);
+      const lambda = crank_r / rod_L;
+      const vmax = omega * crank_r * (1 + (lambda * lambda) / 4);
+      counterVmax.textContent = vmax.toFixed(1);
+
+      updateTelemetry();
+    }
+
+    /**
+     * Calcula la posición exacta x(theta) y velocidad v(theta) del pistón.
+     * x(theta) = r*cos(theta) + sqrt(L^2 - r^2*sin^2(theta))
+     * v(theta) = -omega * r * [ sin(theta) + (r * sin(2*theta)) / (2 * sqrt(L^2 - r^2*sin^2(theta))) ]
+     */
+    function getPistonKinematics(th) {
+      const sinTh = Math.sin(th);
+      const cosTh = Math.cos(th);
+      const underRoot = Math.max(0, rod_L * rod_L - crank_r * crank_r * sinTh * sinTh);
+      const sqrtVal = Math.sqrt(underRoot);
+      const x = crank_r * cosTh + sqrtVal;
+
+      const omega = 2 * Math.PI * (rpm / 60.0);
+      let v = 0;
+      if (sqrtVal > 0) {
+        v = -omega * crank_r * (sinTh + (crank_r * Math.sin(2 * th)) / (2 * sqrtVal));
+      }
+
+      return { x, v, sqrtVal };
+    }
+
+    function updateTelemetry() {
+      // Normalizar ángulo entre 0 y 360 grados
+      let deg = ((theta * 180 / Math.PI) % 360 + 360) % 360;
+      labelTheta.textContent = `θ = ${deg.toFixed(1)}°`;
+
+      const { x, v } = getPistonKinematics(theta);
+      const x_pms = rod_L + crank_r;
+      const x_pmi = rod_L - crank_r;
+      const stroke = 2 * crank_r;
+      const distFromPms = x_pms - x;
+
+      counterPosX.textContent = x.toFixed(1);
+      counterDistPms.textContent = distFromPms.toFixed(1);
+
+      const progress = ((x - x_pmi) / stroke) * 100;
+      progPiston.style.width = `${Math.max(0, Math.min(100, progress)).toFixed(1)}%`;
+
+      headerVelLinear.textContent = `v = ${Math.abs(v).toFixed(1)} mm/s`;
+      counterSpeedV.textContent = Math.abs(v).toFixed(1);
+
+      const omega = 2 * Math.PI * (rpm / 60.0);
+      const vmax = omega * crank_r * 1.15;
+      const speedPct = vmax > 0 ? (Math.abs(v) / vmax) * 100 : 0;
+      progSpeed.style.width = `${Math.max(0, Math.min(100, speedPct)).toFixed(1)}%`;
+
+      // Etiquetas didácticas de estado
+      if (Math.abs(v) < 2) {
+        tagVelState.textContent = "v = 0 (Punto Muerto)";
+        tagVelState.className = "text-amber-400 font-bold font-mono-code";
+      } else if (v > 0) {
+        tagVelState.textContent = "v > 0 (Hacia PMS ➔)";
+        tagVelState.className = "text-emerald-400 font-mono-code";
+      } else {
+        tagVelState.textContent = "v < 0 (Hacia PMI ⬅)";
+        tagVelState.className = "text-rose-400 font-mono-code";
+      }
+
+      if (deg < 10 || deg > 350) {
+        tagStrokePhase.textContent = "En PMS (Extremo Derecho)";
+      } else if (Math.abs(deg - 180) < 10) {
+        tagStrokePhase.textContent = "En PMI (Extremo Izquierdo)";
+      } else if (deg < 180) {
+        tagStrokePhase.textContent = "Carrera de Retroceso (➔ PMI)";
+      } else {
+        tagStrokePhase.textContent = "Carrera de Avance (➔ PMS)";
+      }
+    }
+
+    // Funciones de Renderizado en Canvas
+    /**
+     * Dibuja el volante de inercia y el brazo de la manivela.
+     */
+    function drawCrankWheel(ox, oy, rPx, currentTheta) {
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      // 1. Circunferencia exterior de la trayectoria / volante
+      if (showTrace) {
+        ctx.beginPath();
+        ctx.arc(0, 0, rPx, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // 2. Disco del volante de inercia
+      const wheelGrad = ctx.createRadialGradient(0, 0, rPx * 0.2, 0, 0, rPx * 1.15);
+      wheelGrad.addColorStop(0, '#1e293b');
+      wheelGrad.addColorStop(0.7, '#0f172a');
+      wheelGrad.addColorStop(1, '#020617');
+
+      ctx.beginPath();
+      ctx.arc(0, 0, rPx * 1.15, 0, Math.PI * 2);
+      ctx.fillStyle = wheelGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Aligeramientos del volante
+      const spokes = 4;
+      for (let s = 0; s < spokes; s++) {
+        const sa = (s * Math.PI * 2) / spokes;
+        const hx = (rPx * 0.65) * Math.cos(sa);
+        const hy = (rPx * 0.65) * Math.sin(sa);
+        ctx.beginPath();
+        ctx.arc(hx, hy, rPx * 0.22, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+      }
+
+      // 3. Brazo de la manivela
+      const pinX = rPx * Math.cos(currentTheta);
+      const pinY = rPx * Math.sin(currentTheta);
+
+      ctx.save();
+      ctx.rotate(currentTheta);
+
+      const crankGrad = ctx.createLinearGradient(0, -14, 0, 14);
+      crankGrad.addColorStop(0, '#ea580c');
+      crankGrad.addColorStop(0.5, '#f97316');
+      crankGrad.addColorStop(1, '#c2410c');
+
+      ctx.beginPath();
+      ctx.roundRect(-14, -12, rPx + 28, 24, 12);
+      ctx.fillStyle = crankGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#fed7aa';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // 4. Eje central fijo O
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#f97316';
+      ctx.fill();
+
+      ctx.restore();
+
+      return { pinX: ox + pinX, pinY: oy + pinY };
+    }
+
+    /**
+     * Dibuja la biela articulada conectando muñequilla y bulón del pistón.
+     */
+    function drawConnectingRod(pinX, pinY, pistonPinX, pistonPinY) {
+      ctx.save();
+
+      const dx = pistonPinX - pinX;
+      const dy = pistonPinY - pinY;
+      const length = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+
+      ctx.translate(pinX, pinY);
+      ctx.rotate(angle);
+
+      // Cuerpo perfilado en doble T / viga de la biela
+      const rodGrad = ctx.createLinearGradient(0, -10, 0, 10);
+      rodGrad.addColorStop(0, '#38bdf8');
+      rodGrad.addColorStop(0.5, '#0284c7');
+      rodGrad.addColorStop(1, '#0369a1');
+
+      // Viga central
+      ctx.beginPath();
+      ctx.roundRect(14, -8, length - 28, 16, 4);
+      ctx.fillStyle = rodGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Nervio central longitudinal
+      ctx.beginPath();
+      ctx.rect(20, -3, length - 40, 6);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ctx.fill();
+
+      // Cabeza de la biela (en muñequilla)
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fillStyle = '#0284c7';
+      ctx.fill();
+      ctx.strokeStyle = '#e0f2fe';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Pie de la biela (en bulón de pistón)
+      ctx.beginPath();
+      ctx.arc(length, 0, 13, 0, Math.PI * 2);
+      ctx.fillStyle = '#0284c7';
+      ctx.fill();
+      ctx.strokeStyle = '#e0f2fe';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Cojinetes interiores de bronce
+      ctx.beginPath();
+      ctx.arc(0, 0, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(length, 0, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja el pistón (émbolo) deslizando dentro de las camisas/guías del cilindro.
+     */
+    function drawPistonAndCylinder(pistonPinX, lineY, mmToPxScale) {
+      const pistonW = 68;
+      const pistonH = 58;
+      const pistonX = pistonPinX - pistonW / 2;
+      const pistonY = lineY - pistonH / 2;
+
+      ctx.save();
+
+      // 1. Paredes y camisa del cilindro fijo
+      const cylStartX = pistonPinX - 110;
+      const cylEndX = pistonPinX + 110;
+      const cylTopY = lineY - pistonH / 2 - 14;
+      const cylBottomY = lineY + pistonH / 2 + 14;
+
+      // Guía superior
+      ctx.beginPath();
+      ctx.rect(cylStartX, cylTopY, cylEndX - cylStartX, 10);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Guía inferior
+      ctx.beginPath();
+      ctx.rect(cylStartX, cylBottomY - 10, cylEndX - cylStartX, 10);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Ranuras de lubricación en cilindro
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      for (let rx = cylStartX + 15; rx < cylEndX - 10; rx += 25) {
+        ctx.beginPath();
+        ctx.moveTo(rx, cylTopY + 2);
+        ctx.lineTo(rx + 10, cylTopY + 8);
+        ctx.moveTo(rx, cylBottomY - 8);
+        ctx.lineTo(rx + 10, cylBottomY - 2);
+        ctx.stroke();
+      }
+
+      // 2. Cuerpo macizo del pistón (aluminio rectificado)
+      const pistonGrad = ctx.createLinearGradient(0, pistonY, 0, pistonY + pistonH);
+      pistonGrad.addColorStop(0, '#94a3b8');
+      pistonGrad.addColorStop(0.3, '#cbd5e1');
+      pistonGrad.addColorStop(0.7, '#64748b');
+      pistonGrad.addColorStop(1, '#475569');
+
+      ctx.beginPath();
+      ctx.roundRect(pistonX, pistonY, pistonW, pistonH, 4);
+      ctx.fillStyle = pistonGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Segmentos / aros del pistón
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2.5;
+      [pistonX + 12, pistonX + 22, pistonX + 32].forEach(ringX => {
+        ctx.beginPath();
+        ctx.moveTo(ringX, pistonY + 2);
+        ctx.lineTo(ringX, pistonY + pistonH - 2);
+        ctx.stroke();
+      });
+
+      // Falda recortada del pistón
+      ctx.beginPath();
+      ctx.arc(pistonPinX, lineY, 15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+      ctx.fill();
+
+      // Bulón central de articulación
+      ctx.beginPath();
+      ctx.arc(pistonPinX, lineY, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja las cotas de PMS, PMI y la carrera C = 2*r.
+     */
+    function drawStrokeDimension(ox, lineY, rPx, lPx, mmToPxScale) {
+      if (!showDeadPoints) return;
+
+      const pmsX = ox + lPx + rPx;
+      const pmiX = ox + lPx - rPx;
+      const dimY = lineY + 68;
+
+      ctx.save();
+
+      // Línea de referencia vertical para PMS
+      ctx.beginPath();
+      ctx.moveTo(pmsX, lineY - 45);
+      ctx.lineTo(pmsX, dimY + 15);
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+
+      // Línea de referencia vertical para PMI
+      ctx.beginPath();
+      ctx.moveTo(pmiX, lineY - 45);
+      ctx.lineTo(pmiX, dimY + 15);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Cota horizontal de la Carrera (C = 2r)
+      ctx.beginPath();
+      ctx.moveTo(pmiX, dimY);
+      ctx.lineTo(pmsX, dimY);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Flechas de cota
+      const arrSize = 7;
+      // Flecha izquierda en PMI
+      ctx.beginPath();
+      ctx.moveTo(pmiX, dimY);
+      ctx.lineTo(pmiX + arrSize, dimY - 4);
+      ctx.lineTo(pmiX + arrSize, dimY + 4);
+      ctx.closePath();
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+
+      // Flecha derecha en PMS
+      ctx.beginPath();
+      ctx.moveTo(pmsX, dimY);
+      ctx.lineTo(pmsX - arrSize, dimY - 4);
+      ctx.lineTo(pmsX - arrSize, dimY + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      // Rótulos de PMS y PMI
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = '#10b981';
+      ctx.fillText('PMS (θ = 0°)', pmsX, lineY - 52);
+
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText('PMI (θ = 180°)', pmiX, lineY - 52);
+
+      // Rótulo central de carrera
+      const midStrokeX = (pmsX + pmiX) / 2;
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(midStrokeX - 70, dimY - 10, 140, 20);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(midStrokeX - 70, dimY - 10, 140, 20);
+
+      ctx.fillStyle = '#fde047';
+      ctx.font = 'bold 11px Fira Code, monospace';
+      ctx.fillText(`CARRERA = ${2 * crank_r} mm`, midStrokeX, dimY + 4);
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja vectores cinemáticos ω (giro manivela) y v (velocidad pistón).
+     */
+    function drawVectors(ox, oy, rPx, pistonPinX, lineY, currentTheta) {
+      if (!showVectors || rpm === 0) return;
+
+      ctx.save();
+
+      // 1. Vector ω en la manivela
+      ctx.strokeStyle = '#ea580c';
+      ctx.fillStyle = '#ea580c';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+
+      const arcR = rPx * 0.45;
+      const isCW = (direction === 1);
+      const arcStart = isCW ? Math.PI * 0.8 : Math.PI * 0.2;
+      const arcEnd = isCW ? -Math.PI * 0.2 : Math.PI * 1.2;
+
+      ctx.beginPath();
+      ctx.arc(ox, oy, arcR, arcStart, arcEnd, !isCW);
+      ctx.stroke();
+
+      const ax = ox + arcR * Math.cos(arcEnd);
+      const ay = oy + arcR * Math.sin(arcEnd);
+      const tang = arcEnd + (isCW ? Math.PI / 2 : -Math.PI / 2);
+
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - 9 * Math.cos(tang - Math.PI / 6), ay - 9 * Math.sin(tang - Math.PI / 6));
+      ctx.lineTo(ax - 9 * Math.cos(tang + Math.PI / 6), ay - 9 * Math.sin(tang + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('ω', ox, oy - arcR - 8);
+
+      // 2. Vector velocidad lineal v en el pistón
+      const { v } = getPistonKinematics(currentTheta);
+      if (Math.abs(v) > 1) {
+        const linSign = v > 0 ? 1 : -1;
+        const vLen = Math.min(65, Math.abs(v) * 0.35 + 15);
+        const vStartX = pistonPinX;
+        const vEndX = pistonPinX + linSign * vLen;
+        const vY = lineY - 42;
+
+        ctx.strokeStyle = '#06b6d4';
+        ctx.fillStyle = '#06b6d4';
+        ctx.lineWidth = 3.5;
+
+        ctx.beginPath();
+        ctx.moveTo(vStartX, vY);
+        ctx.lineTo(vEndX, vY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(vEndX, vY);
+        ctx.lineTo(vEndX - 10 * linSign, vY - 5);
+        ctx.lineTo(vEndX - 10 * linSign, vY + 5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillText(`v = ${Math.abs(v).toFixed(0)} mm/s`, vStartX + (linSign * vLen) / 2, vY - 8);
+      }
+
+      ctx.restore();
+    }
+
+    // Bucle Principal de Animación
+    let lastTimestamp = performance.now();
+
+    function renderLoop(currentTimestamp) {
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      // Actualizar ángulo si la simulación está activa
+      if (isRunning && dt > 0 && dt < 0.2) {
+        const omega = 2 * Math.PI * (rpm / 60.0); // rad/s
+        theta += direction * omega * dt;
+        updateTelemetry();
+      }
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Cuadrícula técnica ingenieril
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < cw; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      // Escala visual milimétrica adaptada a la pantalla
+      // Anchura total del mecanismo en reposo: r + L + tamaño_pistón
+      const maxStrokeWidth = (crank_r + rod_L + 60);
+      const availableWidth = Math.min(cw * 0.78, 850);
+      const mmToPx = Math.max(1.3, Math.min(2.8, availableWidth / maxStrokeWidth));
+
+      const rPx = crank_r * mmToPx;
+      const lPx = rod_L * mmToPx;
+
+      // Centro fijo del cigüeñal O
+      const originX = cw * 0.22;
+      const centerY = ch * 0.48;
+
+      // Eje de desplazamiento rectilíneo horizontal (Línea de centros)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(originX - rPx - 30, centerY);
+      ctx.lineTo(originX + lPx + rPx + 110, centerY);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.restore();
+
+      // 1. Dibujar Volante y Manivela
+      const { pinX, pinY } = drawCrankWheel(originX, centerY, rPx, theta);
+
+      // 2. Calcular cinemática exacta del pistón
+      const { x: xPistonMm } = getPistonKinematics(theta);
+      const pistonPinX = originX + xPistonMm * mmToPx;
+
+      // 3. Dibujar Biela
+      drawConnectingRod(pinX, pinY, pistonPinX, centerY);
+
+      // 4. Dibujar Pistón y Cilindro
+      drawPistonAndCylinder(pistonPinX, centerY, mmToPx);
+
+      // 5. Dibujar Cotas de PMS, PMI y Carrera
+      drawStrokeDimension(originX, centerY, rPx, lPx, mmToPx);
+
+      // 6. Dibujar Vectores Cinemáticos
+      drawVectors(originX, centerY, rPx, pistonPinX, centerY, theta);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Inicializar cálculos y arrancar bucle
+    updateCalculations();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>

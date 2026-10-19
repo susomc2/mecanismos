@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Engranajes - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    /* Estilos personalizados para controles y canvas */
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #2563eb;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(37, 99, 235, 0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-800/80 border-b border-slate-700 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+        <svg class="w-6 h-6 text-white animate-spin" style="animation-duration: 10s;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Laboratorio de Cinemática: Engranajes
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Tecnología y Digitalización · Mecanismos de Transmisión Circular</p>
+      </div>
+    </div>
+
+    <!-- Indicador de tipo de sistema -->
+    <div class="flex items-center gap-2 bg-slate-950/60 px-4 py-2 rounded-xl border border-slate-700 text-sm">
+      <span class="flex h-3 w-3 relative">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+      </span>
+      <span class="text-slate-300 font-medium">Régimen:</span>
+      <span class="text-emerald-400 font-bold uppercase tracking-wider text-xs">Multiplicador de Velocidad</span>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1700px] w-full mx-auto">
+
+    <!-- Área de Animación y Simulación en Directo (Canvas) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-950 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[460px] justify-between">
+        
+        <!-- Indicadores flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Rueda Motriz (Z1) -->
+          <div class="pointer-events-auto bg-slate-900/90 backdrop-blur border border-blue-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-blue-400 uppercase tracking-wider">Rueda Motriz 1 (Conductora)</div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span>Z₁ = 20 dientes</span>
+                <span class="text-slate-500">|</span>
+                <span id="label-rpm1" class="text-blue-300 font-mono-code">6.0 RPM</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Rueda Conducida (Z2) -->
+          <div class="pointer-events-auto bg-slate-900/90 backdrop-blur border border-amber-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-amber-500 ring-4 ring-amber-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Rueda Conducida 2 (Arrastrada)</div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span>Z₂ = 10 dientes</span>
+                <span class="text-slate-500">|</span>
+                <span id="label-rpm2" class="text-amber-300 font-mono-code">12.0 RPM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Interactivo -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2">
+          <canvas id="gearsCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Barra de Control Inferior sobre el Canvas -->
+        <div class="bg-slate-900/95 border-t border-slate-800 p-4 px-6 flex flex-wrap items-center justify-between gap-4 z-10">
+          <!-- Botón Reproducir/Pausa y Reset -->
+          <div class="flex items-center gap-2">
+            <button id="btn-toggle" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-2 transition active:scale-95 shadow-md shadow-blue-600/30">
+              <svg id="play-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+              </svg>
+              <svg id="pause-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              <span id="btn-text">Pausar</span>
+            </button>
+
+            <button id="btn-reset" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-medium transition active:scale-95 flex items-center gap-2" title="Poner a 0 las vueltas y ángulos">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <span>Reiniciar Vueltas</span>
+            </button>
+          </div>
+
+          <!-- Slider de Velocidad Motriz N1 -->
+          <div class="flex items-center gap-4 flex-1 max-w-sm min-w-[220px]">
+            <span class="text-xs font-semibold text-slate-400 whitespace-nowrap">Velocidad N₁:</span>
+            <input id="slider-rpm" type="range" min="0" max="24" step="0.5" value="6" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+            <span id="slider-val" class="font-mono-code text-sm font-bold text-blue-400 w-16 text-right">6.0 rpm</span>
+          </div>
+
+          <!-- Conmutador de Ayudas Visuales -->
+          <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="chk-arrows" checked class="rounded border-slate-700 text-blue-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+              <span>Flechas de giro</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="chk-pitch" checked class="rounded border-slate-700 text-blue-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+              <span>Circunferencias primitivas</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Contadores y Comprobación en Tiempo Real -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Contador Rueda 1 -->
+        <div class="bg-slate-800/80 border border-blue-500/30 rounded-2xl p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-center text-xs text-blue-400 font-bold uppercase tracking-wide mb-1">
+            <span>Vueltas Rueda Motriz (Z₁=20)</span>
+            <span class="text-slate-400 font-normal">Giro Antihorario</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <span id="counter-vueltas1" class="text-3xl font-extrabold font-mono-code text-blue-400">0.00</span>
+            <span class="text-xs font-medium text-slate-400">vueltas completas: <b id="full-vueltas1" class="text-white text-base font-bold font-mono-code">0</b></span>
+          </div>
+          <div class="w-full bg-slate-700/60 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-vueltas1" class="bg-blue-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Relación de Verificación -->
+        <div class="bg-slate-800/80 border border-indigo-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center">
+          <div class="text-xs text-indigo-300 font-bold uppercase tracking-wide mb-1">
+            Comprobación de Relación
+          </div>
+          <div class="flex items-center gap-2 my-1">
+            <span class="text-xs text-slate-400 font-medium">Vueltas 2 / Vueltas 1 =</span>
+            <span id="ratio-live" class="text-2xl font-black font-mono-code text-indigo-400">2.00</span>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-tight">
+            Por cada <b class="text-white">1 vuelta</b> del engranaje azul, el engranaje naranja completa exactamente <b class="text-amber-400">2 vueltas</b>.
+          </p>
+        </div>
+
+        <!-- Contador Rueda 2 -->
+        <div class="bg-slate-800/80 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-center text-xs text-amber-400 font-bold uppercase tracking-wide mb-1">
+            <span>Vueltas Conducida (Z₂=10)</span>
+            <span class="text-slate-400 font-normal">Giro Horario</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <span id="counter-vueltas2" class="text-3xl font-extrabold font-mono-code text-amber-400">0.00</span>
+            <span class="text-xs font-medium text-slate-400">vueltas completas: <b id="full-vueltas2" class="text-white text-base font-bold font-mono-code">0</b></span>
+          </div>
+          <div class="w-full bg-slate-700/60 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-vueltas2" class="bg-amber-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico de Tecnología 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-700 pb-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+            Fundamentos de Tecnología (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Transmisión de movimiento circular mediante contacto directo de ruedas dentadas.</p>
+        </div>
+
+        <!-- 1. Ley de Transmisión -->
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-700/80">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">1. Ecuación Fundamental</span>
+            <span class="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full font-mono-code font-bold">N₁ · Z₁ = N₂ · Z₂</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            El número de dientes que pasan por el punto de contacto por minuto es el mismo en ambas ruedas para que puedan engranar perfectamente.
+          </p>
+          <div class="mt-3 p-3 bg-slate-950 rounded-lg text-center font-mono-code text-sm border border-slate-800">
+            <span class="text-blue-400 font-bold">N₁</span> · <span class="text-blue-300">Z₁</span> = <span class="text-amber-400 font-bold">N₂</span> · <span class="text-amber-300">Z₂</span>
+          </div>
+        </div>
+
+        <!-- 2. Relación de Transmisión (i) -->
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-700/80">
+          <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">2. Relación de Transmisión (i)</span>
+          <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono-code text-xs text-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span>i = Z₁ / Z₂</span>
+              <span class="text-emerald-400 font-bold">i = 20 / 10 = 2</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400">
+              <span>i = N₂ / N₁</span>
+              <span>12 rpm / 6 rpm = 2</span>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-slate-300 space-y-1.5">
+            <div class="flex items-start gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span>Como <b class="text-white">i &gt; 1</b>, el mecanismo es un <b>sistema multiplicador de velocidad</b>.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-amber-400 font-bold">⚡</span>
+              <span><b>Conservación de la energía:</b> Al duplicar la velocidad (<span class="text-amber-300">N₂ = 2·N₁</span>), el par motor o fuerza disponible se reduce a la mitad (<span class="text-amber-300">M₂ = M₁ / 2</span>).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Sentido de Giro -->
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-700/80">
+          <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-1">3. Inversión del Sentido de Giro</span>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Al tratarse de dos ruedas con <b>engrane exterior</b>, los dientes ejercen fuerza en direcciones tangenciales contrarias:
+          </p>
+          <div class="grid grid-cols-2 gap-2 mt-2 text-center text-xs font-medium">
+            <div class="p-2 rounded-lg bg-blue-950/40 border border-blue-500/30 text-blue-300">
+              Rueda 1 (Azul)<br><b class="text-white">Antihorario (↺)</b>
+            </div>
+            <div class="p-2 rounded-lg bg-amber-950/40 border border-amber-500/30 text-amber-300">
+              Rueda 2 (Naranja)<br><b class="text-white">Horario (↻)</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experimento Guiado para el Alumnado -->
+        <div class="bg-gradient-to-br from-indigo-950/50 to-slate-900 p-4 rounded-xl border border-indigo-500/30">
+          <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+            <span>💡 Reto para la clase:</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Pulsa <b class="text-white">"Reiniciar Vueltas"</b> y observa la aguja blanca. Cuando la rueda grande azul marque exactamente <b class="text-blue-300">1.00 vuelta</b>, fíjate en el contador naranja. ¡Comprobarás visualmente que marca exactamente <b class="text-amber-300">2.00 vueltas</b>!
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- PARÁMETROS CINEMÁTICOS Y CONFIGURACIÓN ---
+    const Z1 = 20; // Dientes motriz
+    const Z2 = 10; // Dientes conducida
+    const i_ratio = Z1 / Z2; // Relación = 2.0
+
+    let rpm1 = 6.0;               // RPM configurables
+    let isRunning = true;         // Control de animación
+    let angle1 = 0;               // Ángulo acumulado rueda 1 (rad)
+    let angle2 = 0;               // Ángulo acumulado rueda 2 (rad)
+
+    // Opciones visuales
+    let showArrows = true;
+    let showPitch = true;
+
+    // Referencias a elementos DOM
+    const canvas = document.getElementById('gearsCanvas');
+    const ctx = canvas.getContext('2d');
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnReset = document.getElementById('btn-reset');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+    const sliderRpm = document.getElementById('slider-rpm');
+    const sliderVal = document.getElementById('slider-val');
+    const labelRpm1 = document.getElementById('label-rpm1');
+    const labelRpm2 = document.getElementById('label-rpm2');
+
+    const counterVueltas1 = document.getElementById('counter-vueltas1');
+    const fullVueltas1 = document.getElementById('full-vueltas1');
+    const progVueltas1 = document.getElementById('prog-vueltas1');
+
+    const counterVueltas2 = document.getElementById('counter-vueltas2');
+    const fullVueltas2 = document.getElementById('full-vueltas2');
+    const progVueltas2 = document.getElementById('prog-vueltas2');
+    const ratioLive = document.getElementById('ratio-live');
+
+    const chkArrows = document.getElementById('chk-arrows');
+    const chkPitch = document.getElementById('chk-pitch');
+
+    // Ajuste dinámico de resolución del Canvas con Retina/DPI Display
+    let cw = 0, ch = 0;
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cw = rect.width;
+      ch = rect.height;
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Eventos UI
+    sliderRpm.addEventListener('input', (e) => {
+      rpm1 = parseFloat(e.target.value);
+      sliderVal.textContent = `${rpm1.toFixed(1)} rpm`;
+      updateSpeedDisplays();
+    });
+
+    chkArrows.addEventListener('change', (e) => { showArrows = e.target.checked; });
+    chkPitch.addEventListener('change', (e) => { showPitch = e.target.checked; });
+
+    btnToggle.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        btnText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        lastTimestamp = performance.now();
+      } else {
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    });
+
+    btnReset.addEventListener('click', () => {
+      angle1 = 0;
+      angle2 = 0;
+      updateMetrics();
+    });
+
+    function updateSpeedDisplays() {
+      const rpm2 = rpm1 * i_ratio;
+      labelRpm1.textContent = `${rpm1.toFixed(1)} RPM`;
+      labelRpm2.textContent = `${rpm2.toFixed(1)} RPM`;
+    }
+    updateSpeedDisplays();
+
+    /**
+     * Dibuja un engranaje con dientes perfectamente perfilados y unificados.
+     * Para que dos ruedas engranen sin interferencia cinemática:
+     * - El paso circular p = pi * m debe ser IDÉNTICO para ambas ruedas.
+     * - El radio primitivo R_p = m * Z / 2.
+     * - Altura de cabeza del diente ha = 1.0 * m, altura de pie hf = 1.25 * m.
+     */
+    function drawGear(cx, cy, teeth, moduleSize, rotationAngle, primaryColor, accentColor, labelText) {
+      const pitchRadius = (moduleSize * teeth) / 2;
+      const addendum = 0.9 * moduleSize;   // Altura hacia afuera
+      const dedendum = 1.1 * moduleSize;   // Profundidad hacia adentro
+      const outerRadius = pitchRadius + addendum;
+      const rootRadius = pitchRadius - dedendum;
+      const shaftRadius = pitchRadius * 0.22; // Orificio central del eje
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotationAngle);
+
+      // 1. Dibujar perfil continuo del cuerpo dentado exterior
+      ctx.beginPath();
+      const step = (Math.PI * 2) / teeth;
+      
+      // Proporciones del perfil trapezoidal involuta simplificado
+      const toothWidthFactor = 0.46; // Porción ocupada por el diente
+      const toothHalfAngle = (step * toothWidthFactor) / 2;
+      const topHalfAngle = toothHalfAngle * 0.52; // Truncamiento en la cresta
+
+      for (let k = 0; k < teeth; k++) {
+        const midAngle = k * step;
+
+        // Cuatro puntos angulares del diente
+        const aRoot1 = midAngle - toothHalfAngle * 1.35;
+        const aFlank1 = midAngle - toothHalfAngle;
+        const aTop1 = midAngle - topHalfAngle;
+        const aTop2 = midAngle + topHalfAngle;
+        const aFlank2 = midAngle + toothHalfAngle;
+        const aRoot2 = midAngle + toothHalfAngle * 1.35;
+
+        // Vértices cartesianos
+        const pR1 = { x: rootRadius * Math.cos(aRoot1), y: rootRadius * Math.sin(aRoot1) };
+        const pF1 = { x: (pitchRadius - 0.2 * moduleSize) * Math.cos(aFlank1), y: (pitchRadius - 0.2 * moduleSize) * Math.sin(aFlank1) };
+        const pT1 = { x: outerRadius * Math.cos(aTop1), y: outerRadius * Math.sin(aTop1) };
+        const pT2 = { x: outerRadius * Math.cos(aTop2), y: outerRadius * Math.sin(aTop2) };
+        const pF2 = { x: (pitchRadius - 0.2 * moduleSize) * Math.cos(aFlank2), y: (pitchRadius - 0.2 * moduleSize) * Math.sin(aFlank2) };
+        const pR2 = { x: rootRadius * Math.cos(aRoot2), y: rootRadius * Math.sin(aRoot2) };
+
+        if (k === 0) {
+          ctx.moveTo(pR1.x, pR1.y);
+        } else {
+          ctx.lineTo(pR1.x, pR1.y);
+        }
+        ctx.lineTo(pF1.x, pF1.y);
+        ctx.lineTo(pT1.x, pT1.y);
+        ctx.lineTo(pT2.x, pT2.y);
+        ctx.lineTo(pF2.x, pF2.y);
+        ctx.lineTo(pR2.x, pR2.y);
+      }
+      ctx.closePath();
+
+      // Relleno con degradado radial para volumen metálico
+      const grad = ctx.createRadialGradient(0, 0, rootRadius * 0.2, 0, 0, outerRadius);
+      grad.addColorStop(0, primaryColor.inner);
+      grad.addColorStop(0.75, primaryColor.base);
+      grad.addColorStop(1, primaryColor.dark);
+
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = primaryColor.border;
+      ctx.stroke();
+
+      // 2. Agujeros de aligeramiento decorativos si la rueda es grande
+      if (teeth >= 16) {
+        const spokeCount = 5;
+        const spokeHoleRadius = pitchRadius * 0.20;
+        const spokeDist = pitchRadius * 0.58;
+
+        for (let s = 0; s < spokeCount; s++) {
+          const sAngle = (s * Math.PI * 2) / spokeCount;
+          const hx = spokeDist * Math.cos(sAngle);
+          const hy = spokeDist * Math.sin(sAngle);
+
+          ctx.beginPath();
+          ctx.arc(hx, hy, spokeHoleRadius, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(10, 15, 29, 0.75)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // 3. Orificio central del eje
+      ctx.beginPath();
+      ctx.arc(0, 0, shaftRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Chavetero en el eje
+      ctx.beginPath();
+      ctx.rect(-shaftRadius * 0.2, -shaftRadius - 3, shaftRadius * 0.4, 6);
+      ctx.fillStyle = '#64748b';
+      ctx.fill();
+
+      // 4. Aguja marcadora radial de referencia (muy visible para contar las vueltas)
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(pitchRadius + addendum * 0.9, 0);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      // Marcador final de aguja
+      ctx.beginPath();
+      ctx.arc(pitchRadius + addendum * 0.9, 0, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Centro del eje
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fillStyle = accentColor;
+      ctx.fill();
+
+      ctx.restore();
+
+      // 5. Línea de circunferencia primitiva si está activada
+      if (showPitch) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, pitchRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    /**
+     * Dibuja flechas curvadas para ilustrar didácticamente el sentido de rotación.
+     */
+    function drawDirectionArrow(cx, cy, radius, isCounterClockwise, color) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+
+      const arcStart = isCounterClockwise ? Math.PI * 0.75 : Math.PI * 0.25;
+      const arcEnd = isCounterClockwise ? Math.PI * 1.35 : -Math.PI * 0.35;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, arcStart, arcEnd, isCounterClockwise);
+      ctx.stroke();
+
+      // Punta de la flecha
+      const endAngle = arcEnd;
+      const headX = cx + radius * Math.cos(endAngle);
+      const headY = cy + radius * Math.sin(endAngle);
+      const tangent = endAngle + (isCounterClockwise ? -Math.PI / 2 : Math.PI / 2);
+
+      const arrowSize = 9;
+      ctx.beginPath();
+      ctx.moveTo(headX, headY);
+      ctx.lineTo(
+        headX - arrowSize * Math.cos(tangent - Math.PI / 6),
+        headY - arrowSize * Math.sin(tangent - Math.PI / 6)
+      );
+      ctx.lineTo(
+        headX - arrowSize * Math.cos(tangent + Math.PI / 6),
+        headY - arrowSize * Math.sin(tangent + Math.PI / 6)
+      );
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function updateMetrics() {
+      // Cálculo de vueltas (en radianes: 1 vuelta = 2 * PI)
+      const turns1 = Math.abs(angle1) / (2 * Math.PI);
+      const turns2 = Math.abs(angle2) / (2 * Math.PI);
+
+      counterVueltas1.textContent = turns1.toFixed(2);
+      fullVueltas1.textContent = Math.floor(turns1);
+      progVueltas1.style.width = `${((turns1 % 1) * 100).toFixed(1)}%`;
+
+      counterVueltas2.textContent = turns2.toFixed(2);
+      fullVueltas2.textContent = Math.floor(turns2);
+      progVueltas2.style.width = `${((turns2 % 1) * 100).toFixed(1)}%`;
+
+      if (turns1 > 0.05) {
+        ratioLive.textContent = (turns2 / turns1).toFixed(2);
+      } else {
+        ratioLive.textContent = "2.00";
+      }
+    }
+
+    let lastTimestamp = performance.now();
+
+    function renderLoop(currentTimestamp) {
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      // Actualizar física/ángulos si está en marcha
+      if (isRunning && dt > 0 && dt < 0.2) {
+        // w = 2 * PI * (RPM / 60)
+        const omega1 = 2 * Math.PI * (rpm1 / 60.0); // rad/s
+        
+        // Rueda 1 gira en sentido ANTIHORARIO (ángulo negativo matemáticamente en canvas dextrógiro)
+        angle1 -= omega1 * dt;
+
+        // Rueda 2 es arrastrada en sentido HORARIO y al doble de rapidez:
+        // omega2 = omega1 * (Z1 / Z2)
+        const omega2 = omega1 * i_ratio;
+        angle2 += omega2 * dt;
+
+        updateMetrics();
+      }
+
+      // Limpieza de Canvas
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Cuadrícula sutil de fondo ingenieril
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+      ctx.lineWidth = 1;
+      const gridSize = 32;
+      for (let x = 0; x < cw; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      // Escala geométrica adaptada a la pantalla:
+      // Queremos que los dos engranajes quepan centrados con margen
+      // Ancho total necesario = R1_pitch + R2_pitch + márgenes
+      // Total dientes suma = 20 + 10 = 30
+      // Centro a centro = moduleSize * (Z1 + Z2) / 2 = moduleSize * 15
+      const availableWidth = Math.min(cw * 0.82, 850);
+      const moduleSize = Math.max(9, Math.min(22, availableWidth / 22));
+
+      const r1 = (moduleSize * Z1) / 2; // Radio primitivo Rueda 1
+      const r2 = (moduleSize * Z2) / 2; // Radio primitivo Rueda 2
+      const centerDist = r1 + r2;
+
+      // Posiciones de los centros de rotación alineados horizontalmente
+      const centerY = ch / 2;
+      const c1X = (cw / 2) - (centerDist / 2) + (r1 - (centerDist / 2));
+      const c2X = c1X + centerDist;
+
+      // 1. Línea entre centros
+      ctx.beginPath();
+      ctx.moveTo(c1X, centerY);
+      ctx.lineTo(c2X, centerY);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 2. Punto de engrane (Punto Primitivo de Tangencia)
+      const contactX = c1X + r1;
+      ctx.beginPath();
+      ctx.arc(contactX, centerY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Ajuste de fase para acoplamiento perfecto:
+      // En el punto de contacto horizontal (ángulo 0 respecto a c1), un hueco de una rueda
+      // debe coincidir exactamente con el diente de la otra.
+      // Diente de R2 se desfasa medio paso angular (PI / Z2).
+      const phaseOffsetR2 = (Math.PI / Z2);
+
+      // 3. Dibujar Engranaje 1 (Motriz - Azul)
+      drawGear(
+        c1X, centerY, Z1, moduleSize, angle1,
+        { base: '#2563eb', inner: '#3b82f6', dark: '#1d4ed8', border: '#60a5fa' },
+        '#93c5fd',
+        'Z1=20'
+      );
+
+      // 4. Dibujar Engranaje 2 (Conducido - Naranja)
+      drawGear(
+        c2X, centerY, Z2, moduleSize, angle2 + phaseOffsetR2,
+        { base: '#ea580c', inner: '#f97316', dark: '#c2410c', border: '#fb923c' },
+        '#fed7aa',
+        'Z2=10'
+      );
+
+      // 5. Flechas dinámicas de sentido de rotación
+      if (showArrows) {
+        drawDirectionArrow(c1X, centerY, r1 * 0.52, true, '#60a5fa');   // Antihorario
+        drawDirectionArrow(c2X, centerY, r2 * 0.52, false, '#fb923c');  // Horario
+      }
+
+      // 6. Rótulos informativos sobre el punto de contacto
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '600 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Punto de Engrane', contactX, centerY - 14);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Iniciar loop al cargar la ventana
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>

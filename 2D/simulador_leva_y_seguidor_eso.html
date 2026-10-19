@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Leva y Seguidor - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #ec4899;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(236, 72, 153, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-pink-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-slate-950 font-black">
+        <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M12 21a9 9 0 100-18 9 9 0 000 18z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M12 3v9l4 4"/>
+          <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Mecanismo de Leva y Seguidor
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-pink-500/20 text-pink-400 border border-pink-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Contacto geométrico exacto en tiempo real · Transformación circular continua a lineal alternativa</p>
+      </div>
+    </div>
+
+    <!-- Indicador de fase instantánea y principio funcional -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <div class="flex items-center gap-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
+        <span id="phase-ping" class="h-2.5 w-2.5 rounded-full bg-pink-400 animate-pulse"></span>
+        <span class="text-slate-300 font-medium">Fase:</span>
+        <span id="badge-phase" class="text-pink-400 font-bold uppercase tracking-wider text-[11px]">Subiendo (Ascenso)</span>
+      </div>
+      <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+        🔒 Contacto Físico Continuo (Sin Separación)
+      </span>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1750px] w-full mx-auto">
+
+    <!-- Área de Animación: Canvas Mecánico y Gráfica del Diagrama s(θ) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[560px] justify-between">
+        
+        <!-- Tarjetas flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Leva -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-pink-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-pink-400 ring-4 ring-pink-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                Leva Motriz (Eje Central O) <span class="text-[9px] bg-pink-500/20 px-1 rounded text-pink-300">MOTOR</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-cam-type">Leva Ovoide / Pera</span>
+                <span class="text-slate-600">|</span>
+                <span id="label-rpm" class="text-pink-300 font-mono-code">20.0 RPM</span>
+                <span class="text-slate-600">|</span>
+                <span id="label-theta" class="text-slate-300 font-mono-code text-xs">θ = 0.0°</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Seguidor -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-emerald-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-emerald-400 ring-4 ring-emerald-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                Seguidor / Vástago Móvil <span class="text-[9px] bg-emerald-500/20 px-1 rounded text-emerald-300">CONDUCIDO</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-follower-type">Seguidor de Rodillo</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-stroke" class="text-amber-300 font-mono-code">Alzada h = 25.0 mm</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-instant-lift" class="text-emerald-300 font-mono-code text-xs">s(θ) = 0.0 mm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas de Simulación Mecánica -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2 min-h-[380px]">
+          <canvas id="camCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Diagrama Gráfico de Elevación s(θ) en tiempo real -->
+        <div class="bg-slate-950/90 border-t border-slate-800/80 px-6 py-3 flex flex-col gap-1.5">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-slate-300 flex items-center gap-2">
+              <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+              </svg>
+              Diagrama Cinemático de Alzada: <span class="text-pink-400 font-mono-code">s(θ)</span> frente al Ángulo de Giro <span class="text-slate-400 font-mono-code">(0° a 360°)</span>
+            </span>
+            <div class="flex items-center gap-3 text-[11px] font-mono-code text-slate-400">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-pink-500"></span> Ángulo Actual: <b id="graph-theta-val" class="text-white">0°</b></span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Alzada s: <b id="graph-lift-val" class="text-emerald-300">0.0 mm</b></span>
+            </div>
+          </div>
+          <div class="w-full h-[95px] relative">
+            <canvas id="graphCanvas" class="w-full h-full block rounded-lg bg-slate-900 border border-slate-800"></canvas>
+          </div>
+        </div>
+
+        <!-- Barra de Control Inferior -->
+        <div class="bg-slate-950/95 border-t border-slate-800 p-4 px-6 flex flex-col gap-3.5 z-10">
+          
+          <!-- Fila 1 de Selectores: Tipo de Leva y Tipo de Seguidor -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pb-3 border-b border-slate-800/80">
+            <!-- Selector Tipo de Leva -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-pink-500/30">
+              <span class="text-xs font-bold text-pink-400 whitespace-nowrap">Perfil de Leva:</span>
+              <div class="flex items-center gap-1.5 w-full justify-between" id="group-cam-type">
+                <button data-cam="pear" class="btn-cam flex-1 py-1.5 rounded-lg text-xs font-bold bg-pink-600 text-white shadow-sm transition">Pera / Ovoide</button>
+                <button data-cam="eccentric" class="btn-cam flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Excéntrica</button>
+                <button data-cam="heart" class="btn-cam flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Caracol / Corazón</button>
+              </div>
+            </div>
+
+            <!-- Selector Tipo de Seguidor -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-emerald-500/30">
+              <span class="text-xs font-bold text-emerald-400 whitespace-nowrap">Seguidor:</span>
+              <div class="flex items-center gap-1.5 w-full justify-between" id="group-follower-type">
+                <button data-follower="roller" class="btn-follower flex-1 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm transition">De Rodillo</button>
+                <button data-follower="knife" class="btn-follower flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Cuchilla / Punta</button>
+                <button data-follower="flat" class="btn-follower flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Platillo Plano</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila 2 de Controles: r0, h, velocidad, sentido de giro y botones -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3.5 pb-3 border-b border-slate-800/80">
+            <!-- Control Radio Base r0 -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-pink-500/30">
+              <span class="text-xs font-bold text-pink-400 whitespace-nowrap">Radio r₀:</span>
+              <input id="slider-r0" type="range" min="30" max="60" step="2" value="48" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500">
+              <span id="val-r0-ctrl" class="font-mono-code text-xs font-bold text-pink-300 w-14 text-right">48 mm</span>
+            </div>
+
+            <!-- Control Alzada Máxima h -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-amber-500/30">
+              <span class="text-xs font-bold text-amber-400 whitespace-nowrap">Alzada h:</span>
+              <input id="slider-stroke" type="range" min="15" max="45" step="1" value="25" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+              <span id="val-stroke" class="font-mono-code text-xs font-bold text-amber-300 w-14 text-right">25 mm</span>
+            </div>
+
+            <!-- Control de Velocidad N (RPM) -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-pink-500/30">
+              <span class="text-xs font-bold text-pink-400 whitespace-nowrap">Velocidad N:</span>
+              <input id="slider-rpm" type="range" min="0" max="60" step="1" value="20" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-pink-500">
+              <span id="slider-val" class="font-mono-code text-xs font-bold text-pink-400 w-14 text-right">20 rpm</span>
+            </div>
+
+            <!-- Botones de Ejecución y Sentido -->
+            <div class="flex items-center gap-1.5">
+              <button id="btn-toggle" class="flex-1 py-2 px-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl flex items-center justify-center gap-1 transition active:scale-95 shadow-md text-xs shadow-pink-600/30">
+                <svg id="play-icon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                </svg>
+                <svg id="pause-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span id="btn-text">Pausar</span>
+              </button>
+
+              <button id="btn-step" class="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Avanzar 10 grados">
+                <span>+10°</span>
+              </button>
+
+              <button id="btn-direction" class="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Cambiar sentido de giro horario / antihorario">
+                <span id="dir-icon">↻</span>
+              </button>
+
+              <button id="btn-reset" class="py-2 px-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="Reiniciar a θ = 0°">
+                <span>0°</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fila 3 de Conmutadores de Ayudas Visuales -->
+          <div class="flex flex-wrap items-center justify-between gap-4 text-xs font-medium text-slate-400">
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-base-circle" checked class="rounded border-slate-700 text-pink-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Circunferencia base ($r_0$)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-stroke-dim" checked class="rounded border-slate-700 text-pink-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Cotas de alzada ($h$)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-spring" checked class="rounded border-slate-700 text-pink-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Muelle de retorno</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-vectors" checked class="rounded border-slate-700 text-pink-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Vectores ($\omega$, $v$)</span>
+              </label>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Giro actual: <b id="dir-label-text" class="text-white">Horario ($\circlearrowright$)</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Telemetría Inferior -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Tarjeta Alzada Instantánea s(θ) -->
+        <div class="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-emerald-400 font-bold uppercase tracking-wide mb-1">
+            <span>Alzada Instantánea s(θ)</span>
+            <span id="tag-lift-pct" class="text-slate-400 font-normal">0% de h</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-lift-s" class="text-3xl font-extrabold font-mono-code text-emerald-400">0.0</span>
+              <span class="text-xs text-emerald-300 font-semibold font-mono-code ml-1">mm</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              Máx: <span id="counter-stroke-max" class="text-slate-200 font-bold">25.0</span> mm
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-lift" class="bg-emerald-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Ángulo y Velocidad Angular -->
+        <div class="bg-slate-900/90 border border-pink-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-pink-400 font-bold uppercase tracking-wide mb-1">
+            <span>Rotación de la Leva</span>
+            <span id="counter-omega-val" class="text-slate-400 font-mono-code text-xs">ω = 2.09 rad/s</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-theta-deg" class="text-3xl font-extrabold font-mono-code text-pink-400">0.0</span>
+              <span class="text-xs text-pink-300 font-semibold font-mono-code ml-1">°</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              Vueltas: <b id="full-turns" class="text-white text-base">0</b>
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-turn" class="bg-pink-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Radios Base y Máximo -->
+        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center shadow-lg">
+          <div class="text-xs text-amber-300 font-bold uppercase tracking-wide mb-1">
+            Radios de Diseño de la Leva
+          </div>
+          <div class="flex items-baseline gap-2 my-1">
+            <span class="text-xs text-slate-400">Radio base: <b id="val-r0" class="text-slate-200 font-mono-code">48 mm</b></span>
+            <span class="text-slate-600">|</span>
+            <span class="text-xs text-slate-400">Radio máx: <b id="val-rmax" class="text-amber-400 font-mono-code">73 mm</b></span>
+          </div>
+          <p id="cam-profile-desc" class="text-[11px] text-slate-400 leading-tight">
+            La alzada equivale a la diferencia: <b class="text-white">h = r_máx - r₀ = 25 mm</b>.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+            <svg class="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            Fundamentos de Tecnología (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Transformación de movimiento circular continuo en rectilíneo alternativo o periódico programado.</p>
+        </div>
+
+        <!-- 1. Los Elementos del Mecanismo -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-pink-400 uppercase tracking-wider block mb-2">1. Elementos Principales</span>
+          <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+            <div>• <b class="text-pink-300">Leva:</b> Elemento motriz con contorno no circular o eje descentrado. Gira de forma continua impulsada por un motor.</div>
+            <div>• <b class="text-emerald-300">Seguidor / Vástago:</b> Pieza conducida que apoya sobre el borde de la leva y se mueve en línea recta dentro de una guía cilíndrica fija.</div>
+            <div>• <b class="text-amber-300">Muelle de retorno:</b> Garantiza que el seguidor se mantenga permanentemente en contacto con el perfil de la leva durante el descenso, evitando que se quede en el aire por inercia.</div>
+          </div>
+        </div>
+
+        <!-- 2. La Programación Mecánica y el Perfil -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">2. El Perfil y las 4 Fases</span>
+            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono-code font-bold">h = r_máx - r₀</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed mb-2">
+            El contorno exterior de la leva actúa como una <b>"memoria mecánica"</b>. Diseñando la forma programamos el ciclo:
+          </p>
+          <div class="space-y-1.5 text-xs">
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span class="text-emerald-400 font-bold">1. Ascenso / Subida:</span>
+              <span class="text-slate-400">El radio aumenta y empuja el seguidor hacia arriba.</span>
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span class="text-pink-400 font-bold">2. Reposo Superior:</span>
+              <span class="text-slate-400">Radio máximo constante; el seguidor se detiene arriba.</span>
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span class="text-rose-400 font-bold">3. Descenso / Bajada:</span>
+              <span class="text-slate-400">El radio disminuye; el muelle hace descender el vástago.</span>
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex justify-between items-center">
+              <span class="text-indigo-400 font-bold">4. Reposo Inferior:</span>
+              <span class="text-slate-400">Radio base ($r_0$); el seguidor reposa en el punto más bajo.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Tipos de Seguidores -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">3. Geometría de Contacto</span>
+          <div class="text-xs text-slate-300 space-y-2 leading-relaxed">
+            <div>• <b class="text-emerald-300">De Rodillo:</b> Sustituye la fricción por rodadura pura. Su centro se sitúa exactamente a una distancia igual al radio del rodillo de la superficie de la leva.</div>
+            <div>• <b class="text-sky-300">De Cuchilla / Punta:</b> La punta toca con precisión matemática la cota $y$ del contorno en la vertical del eje del vástago.</div>
+            <div>• <b class="text-purple-300">De Platillo Plano:</b> La base plana horizontal apoya sobre el punto más alto ($y_{\text{máx}}$) de toda la silueta de la leva en cada instante.</div>
+          </div>
+        </div>
+
+        <!-- 4. Aplicaciones en la Vida Diaria -->
+        <div class="bg-indigo-950/40 rounded-xl p-4 border border-indigo-500/40">
+          <div class="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider mb-2">
+            <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            4. Aplicaciones en la Sociedad
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-pink-300">🚗 Árbol de levas:</b> Abre y cierra con precisión de milisegundos las válvulas de admisión y escape en los motores de los coches.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-amber-300">🎶 Cajas de música:</b> Pequeñas levas en un cilindro percuten las láminas metálicas para producir las notas.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-emerald-300">🤖 Autómatas:</b> Programan secuencias mecánicas repetitivas sin necesidad de electrónica.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-sky-300">🔨 Martillo pilón:</b> Eleva una masa y la deja caer cíclicamente en procesos de forja industrial.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- ESTADO Y PARÁMETROS CINEMÁTICOS ---
+    let camType = 'pear';           // 'pear', 'eccentric', 'heart'
+    let followerType = 'roller';    // 'roller', 'knife', 'flat'
+    let r0_base = 48;               // Radio base de la leva en mm
+    let stroke_h = 25;              // Alzada máxima en mm
+    let rpm = 20.0;                 // Velocidad en RPM
+    let direction = 1;              // 1: Horario, -1: Antihorario
+    let isRunning = true;
+
+    let theta = 0;                  // Ángulo de rotación de la leva (rad)
+    let totalTurns = 0;
+
+    // Opciones visuales
+    let showBaseCircle = true;
+    let showStrokeDim = true;
+    let showSpring = true;
+    let showVectors = true;
+
+    // Referencias DOM
+    const canvas = document.getElementById('camCanvas');
+    const ctx = canvas.getContext('2d');
+    const graphCanvas = document.getElementById('graphCanvas');
+    const gctx = graphCanvas.getContext('2d');
+
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnStep = document.getElementById('btn-step');
+    const btnReset = document.getElementById('btn-reset');
+    const btnDirection = document.getElementById('btn-direction');
+    const dirIcon = document.getElementById('dir-icon');
+    const dirLabelText = document.getElementById('dir-label-text');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+
+    const groupCamType = document.getElementById('group-cam-type');
+    const groupFollowerType = document.getElementById('group-follower-type');
+
+    const sliderR0 = document.getElementById('slider-r0');
+    const valR0Ctrl = document.getElementById('val-r0-ctrl');
+    const sliderStroke = document.getElementById('slider-stroke');
+    const valStroke = document.getElementById('val-stroke');
+    const sliderRpm = document.getElementById('slider-rpm');
+    const sliderVal = document.getElementById('slider-val');
+
+    const headerCamType = document.getElementById('header-cam-type');
+    const headerFollowerType = document.getElementById('header-follower-type');
+    const headerStroke = document.getElementById('header-stroke');
+    const headerInstantLift = document.getElementById('header-instant-lift');
+    const labelRpm = document.getElementById('label-rpm');
+    const labelTheta = document.getElementById('label-theta');
+
+    const badgePhase = document.getElementById('badge-phase');
+    const phasePing = document.getElementById('phase-ping');
+
+    const counterLiftS = document.getElementById('counter-lift-s');
+    const counterStrokeMax = document.getElementById('counter-stroke-max');
+    const tagLiftPct = document.getElementById('tag-lift-pct');
+    const progLift = document.getElementById('prog-lift');
+
+    const counterThetaDeg = document.getElementById('counter-theta-deg');
+    const counterOmegaVal = document.getElementById('counter-omega-val');
+    const fullTurns = document.getElementById('full-turns');
+    const progTurn = document.getElementById('prog-turn');
+
+    const valR0 = document.getElementById('val-r0');
+    const valRmax = document.getElementById('val-rmax');
+    const camProfileDesc = document.getElementById('cam-profile-desc');
+
+    const graphThetaVal = document.getElementById('graph-theta-val');
+    const graphLiftVal = document.getElementById('graph-lift-val');
+
+    const chkBaseCircle = document.getElementById('chk-base-circle');
+    const chkStrokeDim = document.getElementById('chk-stroke-dim');
+    const chkSpring = document.getElementById('chk-spring');
+    const chkVectors = document.getElementById('chk-vectors');
+
+    let cw = 0, ch = 0;
+    let gw = 0, gh = 0;
+
+    function resizeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+
+      const rect = canvas.getBoundingClientRect();
+      cw = rect.width;
+      ch = rect.height;
+      if (cw > 0 && ch > 0) {
+        canvas.width = Math.floor(cw * dpr);
+        canvas.height = Math.floor(ch * dpr);
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+      }
+
+      const grect = graphCanvas.getBoundingClientRect();
+      gw = grect.width;
+      gh = grect.height;
+      if (gw > 0 && gh > 0) {
+        graphCanvas.width = Math.floor(gw * dpr);
+        graphCanvas.height = Math.floor(gh * dpr);
+        gctx.resetTransform();
+        gctx.scale(dpr, dpr);
+      }
+    }
+    window.addEventListener('resize', resizeCanvases);
+
+    /**
+     * Retorna el radio polar r(phi) de la leva para un ángulo phi en el sistema propio de la leva.
+     */
+    function getCamProfileRadius(phi, type, r0, h) {
+      const a = ((phi % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+
+      if (type === 'eccentric') {
+        const e = h / 2;
+        const R = r0 + e;
+        return e * Math.cos(a) + Math.sqrt(Math.max(0, R * R - e * e * Math.sin(a) * Math.sin(a)));
+      } else if (type === 'heart') {
+        if (a <= Math.PI) {
+          return r0 + h * (a / Math.PI);
+        } else {
+          return r0 + h * ((2 * Math.PI - a) / Math.PI);
+        }
+      } else {
+        const deg = (a * 180) / Math.PI;
+        if (deg >= 90 && deg < 150) {
+          const u = (deg - 90) / 60;
+          const factor = 0.5 * (1 - Math.cos(u * Math.PI));
+          return r0 + h * factor;
+        } else if (deg >= 150 && deg <= 210) {
+          return r0 + h;
+        } else if (deg > 210 && deg <= 270) {
+          const u = (deg - 210) / 60;
+          const factor = 0.5 * (1 + Math.cos(u * Math.PI));
+          return r0 + h * factor;
+        } else {
+          return r0;
+        }
+      }
+    }
+
+    /**
+     * CÁLCULO DE CONTACTO FÍSICO EXACTO:
+     * Garantiza apoyo continuo del seguidor sobre la superficie de la leva.
+     */
+    function calculateExactContact(currentTheta, type, r0, h, follower, scale) {
+      const N = 180; // Muestreo eficiente y rápido para 60fps constantes
+      const rollerR = 14;
+
+      if (follower === 'knife') {
+        const contactPhi = Math.PI / 2 - currentTheta;
+        const rVal = getCamProfileRadius(contactPhi, type, r0, h);
+        const contactY_screen = -rVal * scale;
+        const lift = Math.max(0, rVal - r0);
+        return {
+          contactX: 0,
+          contactY: contactY_screen,
+          followerPinY: contactY_screen,
+          lift: lift
+        };
+      } else if (follower === 'roller') {
+        let minCenterY = 0;
+        let bestContactX = 0;
+        let bestContactY = 0;
+        let first = true;
+        const rollerRPx = rollerR * scale;
+
+        for (let i = 0; i < N; i++) {
+          const phi = (i * 2 * Math.PI) / N;
+          const r = getCamProfileRadius(phi, type, r0, h) * scale;
+          const worldAngle = phi + currentTheta;
+          const px = r * Math.cos(worldAngle);
+          const py = -r * Math.sin(worldAngle);
+
+          if (Math.abs(px) <= rollerRPx) {
+            const dy = Math.sqrt(Math.max(0, rollerRPx * rollerRPx - px * px));
+            const candCenterY = py - dy;
+            if (first || candCenterY < minCenterY) {
+              minCenterY = candCenterY;
+              bestContactX = px;
+              bestContactY = py;
+              first = false;
+            }
+          }
+        }
+
+        const baseCenterY = -(r0 * scale + rollerRPx);
+        const lift = Math.max(0, (baseCenterY - minCenterY) / scale);
+
+        return {
+          contactX: bestContactX,
+          contactY: bestContactY,
+          followerPinY: minCenterY,
+          lift: lift
+        };
+      } else {
+        let minPy = 0;
+        let bestContactX = 0;
+        let first = true;
+
+        for (let i = 0; i < N; i++) {
+          const phi = (i * 2 * Math.PI) / N;
+          const r = getCamProfileRadius(phi, type, r0, h) * scale;
+          const worldAngle = phi + currentTheta;
+          const px = r * Math.cos(worldAngle);
+          const py = -r * Math.sin(worldAngle);
+
+          if (first || py < minPy) {
+            minPy = py;
+            bestContactX = px;
+            first = false;
+          }
+        }
+
+        const basePlateY = -r0 * scale;
+        const lift = Math.max(0, (basePlateY - minPy) / scale);
+
+        return {
+          contactX: bestContactX,
+          contactY: minPy,
+          followerPinY: minPy,
+          lift: lift
+        };
+      }
+    }
+
+    // Control Tipo de Leva
+    groupCamType.querySelectorAll('.btn-cam').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupCamType.querySelectorAll('.btn-cam').forEach(b => {
+          b.className = 'btn-cam flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-cam flex-1 py-1.5 rounded-lg text-xs font-bold bg-pink-600 text-white shadow-sm transition';
+        camType = btn.getAttribute('data-cam');
+
+        if (camType === 'pear') headerCamType.textContent = 'Leva Ovoide / Pera';
+        else if (camType === 'eccentric') headerCamType.textContent = 'Leva Excéntrica';
+        else headerCamType.textContent = 'Leva Caracol / Corazón';
+
+        updateTelemetry();
+      });
+    });
+
+    // Control Tipo de Seguidor
+    groupFollowerType.querySelectorAll('.btn-follower').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupFollowerType.querySelectorAll('.btn-follower').forEach(b => {
+          b.className = 'btn-follower flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-follower flex-1 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm transition';
+        followerType = btn.getAttribute('data-follower');
+
+        if (followerType === 'roller') headerFollowerType.textContent = 'Seguidor de Rodillo';
+        else if (followerType === 'knife') headerFollowerType.textContent = 'Seguidor Cuchilla / Punta';
+        else headerFollowerType.textContent = 'Seguidor Platillo Plano';
+
+        updateTelemetry();
+      });
+    });
+
+    // Control Radio Base r0
+    sliderR0.addEventListener('input', (e) => {
+      r0_base = parseInt(e.target.value);
+      valR0Ctrl.textContent = `${r0_base} mm`;
+      updateTelemetry();
+    });
+
+    // Control Alzada h
+    sliderStroke.addEventListener('input', (e) => {
+      stroke_h = parseInt(e.target.value);
+      valStroke.textContent = `${stroke_h} mm`;
+      headerStroke.textContent = `Alzada h = ${stroke_h.toFixed(1)} mm`;
+      counterStrokeMax.textContent = stroke_h.toFixed(1);
+      updateTelemetry();
+    });
+
+    // Control Velocidad N
+    sliderRpm.addEventListener('input', (e) => {
+      rpm = parseFloat(e.target.value);
+      sliderVal.textContent = `${rpm.toFixed(0)} rpm`;
+      labelRpm.textContent = `${rpm.toFixed(1)} RPM`;
+      updateTelemetry();
+    });
+
+    // Sentido de Giro
+    btnDirection.addEventListener('click', () => {
+      direction *= -1;
+      if (direction === 1) {
+        dirIcon.textContent = "↻";
+        dirLabelText.textContent = "Horario (↻)";
+      } else {
+        dirIcon.textContent = "↺";
+        dirLabelText.textContent = "Antihorario (↺)";
+      }
+    });
+
+    // Botones Reproducción
+    btnToggle.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        btnText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        lastTimestamp = performance.now();
+      } else {
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    });
+
+    btnStep.addEventListener('click', () => {
+      if (isRunning) {
+        isRunning = false;
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+      theta += direction * (10 * Math.PI / 180);
+      updateTelemetry();
+    });
+
+    btnReset.addEventListener('click', () => {
+      theta = 0;
+      totalTurns = 0;
+      updateTelemetry();
+    });
+
+    // Checkboxes
+    chkBaseCircle.addEventListener('change', (e) => { showBaseCircle = e.target.checked; });
+    chkStrokeDim.addEventListener('change', (e) => { showStrokeDim = e.target.checked; });
+    chkSpring.addEventListener('change', (e) => { showSpring = e.target.checked; });
+    chkVectors.addEventListener('change', (e) => { showVectors = e.target.checked; });
+
+    function updateTelemetry() {
+      const deg = ((theta * 180 / Math.PI) % 360 + 360) % 360;
+      labelTheta.textContent = `θ = ${deg.toFixed(1)}°`;
+      counterThetaDeg.textContent = deg.toFixed(1);
+      graphThetaVal.textContent = `${Math.round(deg)}°`;
+
+      totalTurns = Math.floor(Math.abs(theta) / (2 * Math.PI));
+      fullTurns.textContent = totalTurns;
+      progTurn.style.width = `${((deg / 360) * 100).toFixed(1)}%`;
+
+      const omega = 2 * Math.PI * (rpm / 60.0);
+      counterOmegaVal.textContent = `ω = ${omega.toFixed(2)} rad/s`;
+
+      const dummyScale = 1.0;
+      const contactInfo = calculateExactContact(theta, camType, r0_base, stroke_h, followerType, dummyScale);
+      const currentLift = contactInfo.lift;
+
+      headerInstantLift.textContent = `s(θ) = ${currentLift.toFixed(1)} mm`;
+      counterLiftS.textContent = currentLift.toFixed(1);
+      graphLiftVal.textContent = `${currentLift.toFixed(1)} mm`;
+
+      const liftPct = stroke_h > 0 ? (currentLift / stroke_h) * 100 : 0;
+      tagLiftPct.textContent = `${liftPct.toFixed(0)}% de h`;
+      progLift.style.width = `${Math.max(0, Math.min(100, liftPct)).toFixed(1)}%`;
+
+      valR0.textContent = `${r0_base} mm`;
+      valRmax.textContent = `${r0_base + stroke_h} mm`;
+      camProfileDesc.innerHTML = `La alzada equivale a la diferencia: <b class="text-white">h = ${r0_base + stroke_h} - ${r0_base} = ${stroke_h} mm</b>.`;
+
+      const dTh = 0.02;
+      const nextInfo = calculateExactContact(theta + direction * dTh, camType, r0_base, stroke_h, followerType, dummyScale);
+      const ds_dt = (nextInfo.lift - currentLift) / dTh;
+
+      if (Math.abs(ds_dt) < 0.15) {
+        if (currentLift > stroke_h * 0.85) {
+          badgePhase.textContent = "Cresta / Reposo Alto";
+          badgePhase.className = "text-amber-400 font-bold uppercase tracking-wider text-[11px]";
+          phasePing.className = "h-2.5 w-2.5 rounded-full bg-amber-400 animate-pulse";
+        } else {
+          badgePhase.textContent = "Base / Reposo Bajo";
+          badgePhase.className = "text-indigo-400 font-bold uppercase tracking-wider text-[11px]";
+          phasePing.className = "h-2.5 w-2.5 rounded-full bg-indigo-400 animate-pulse";
+        }
+      } else if (ds_dt > 0) {
+        badgePhase.textContent = "Subiendo (Ascenso)";
+        badgePhase.className = "text-pink-400 font-bold uppercase tracking-wider text-[11px]";
+        phasePing.className = "h-2.5 w-2.5 rounded-full bg-pink-400 animate-pulse";
+      } else {
+        badgePhase.textContent = "Bajando (Descenso)";
+        badgePhase.className = "text-emerald-400 font-bold uppercase tracking-wider text-[11px]";
+        phasePing.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse";
+      }
+    }
+
+    function drawCam(ox, oy, currentTheta, scale) {
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      if (showBaseCircle) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r0_base * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(236, 72, 153, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      if (showBaseCircle) {
+        ctx.beginPath();
+        ctx.arc(0, 0, (r0_base + stroke_h) * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([2, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      const steps = 360;
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const phi = (i * 2 * Math.PI) / steps;
+        const r = getCamProfileRadius(phi, camType, r0_base, stroke_h) * scale;
+        const worldAngle = phi + currentTheta;
+        const x = r * Math.cos(worldAngle);
+        const y = -r * Math.sin(worldAngle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      const rMaxPx = (r0_base + stroke_h) * scale;
+      const camGrad = ctx.createRadialGradient(0, 0, r0_base * scale * 0.2, 0, 0, rMaxPx);
+      camGrad.addColorStop(0, '#f472b6');
+      camGrad.addColorStop(0.5, '#ec4899');
+      camGrad.addColorStop(0.85, '#be185d');
+      camGrad.addColorStop(1, '#831843');
+
+      ctx.fillStyle = camGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#fbcfe8';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      const holeR = r0_base * scale * 0.18;
+      const holeDist = r0_base * scale * 0.52;
+      for (let h = 0; h < 3; h++) {
+        const ha = (h * 2 * Math.PI) / 3 + currentTheta;
+        ctx.beginPath();
+        ctx.arc(holeDist * Math.cos(ha), -holeDist * Math.sin(ha), holeR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.rect(-3, -11, 6, 6);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawFollowerAndSpring(ox, oy, contactInfo, scale) {
+      ctx.save();
+
+      const stemWidth = 14;
+      const stemLength = 170;
+      const guideWidth = 36;
+      const guideHeight = 70;
+      const guideY = oy - (r0_base + stroke_h) * scale - 75;
+      const rollerRadius = 14 * scale;
+
+      let followerBaseY = oy + contactInfo.followerPinY;
+
+      if (followerType === 'roller') {
+        const rollerCenterX = ox;
+        const rollerCenterY = followerBaseY;
+
+        ctx.beginPath();
+        ctx.rect(ox - stemWidth / 2 - 3, rollerCenterY - 10, stemWidth + 6, 12);
+        ctx.fillStyle = '#059669';
+        ctx.fill();
+        ctx.strokeStyle = '#6ee7b7';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        const rollerGrad = ctx.createRadialGradient(rollerCenterX, rollerCenterY, 3, rollerCenterX, rollerCenterY, rollerRadius);
+        rollerGrad.addColorStop(0, '#a7f3d0');
+        rollerGrad.addColorStop(0.6, '#10b981');
+        rollerGrad.addColorStop(1, '#047857');
+
+        ctx.beginPath();
+        ctx.arc(rollerCenterX, rollerCenterY, rollerRadius, 0, Math.PI * 2);
+        ctx.fillStyle = rollerGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(rollerCenterX, rollerCenterY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.strokeStyle = '#a7f3d0';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        followerBaseY = rollerCenterY - rollerRadius;
+      } else if (followerType === 'knife') {
+        const tipX = ox;
+        const tipY = oy + contactInfo.contactY;
+
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(tipX - 10, tipY - 22);
+        ctx.lineTo(tipX + 10, tipY - 22);
+        ctx.closePath();
+
+        const knifeGrad = ctx.createLinearGradient(tipX - 10, tipY, tipX + 10, tipY);
+        knifeGrad.addColorStop(0, '#34d399');
+        knifeGrad.addColorStop(0.5, '#10b981');
+        knifeGrad.addColorStop(1, '#065f46');
+
+        ctx.fillStyle = knifeGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#ecfdf5';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        followerBaseY = tipY - 22;
+      } else {
+        const flatWidth = 72;
+        const flatHeight = 10;
+        const plateBottomY = oy + contactInfo.contactY;
+
+        ctx.beginPath();
+        ctx.roundRect(ox - flatWidth / 2, plateBottomY - flatHeight, flatWidth, flatHeight, 3);
+
+        const flatGrad = ctx.createLinearGradient(0, plateBottomY - flatHeight, 0, plateBottomY);
+        flatGrad.addColorStop(0, '#6ee7b7');
+        flatGrad.addColorStop(0.5, '#10b981');
+        flatGrad.addColorStop(1, '#047857');
+
+        ctx.fillStyle = flatGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#ecfdf5';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        followerBaseY = plateBottomY - flatHeight;
+      }
+
+      const stemTopY = followerBaseY - stemLength;
+
+      const stemGrad = ctx.createLinearGradient(ox - stemWidth / 2, 0, ox + stemWidth / 2, 0);
+      stemGrad.addColorStop(0, '#64748b');
+      stemGrad.addColorStop(0.3, '#cbd5e1');
+      stemGrad.addColorStop(0.7, '#94a3b8');
+      stemGrad.addColorStop(1, '#334155');
+
+      ctx.beginPath();
+      ctx.roundRect(ox - stemWidth / 2, stemTopY, stemWidth, followerBaseY - stemTopY, 3);
+      ctx.fillStyle = stemGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.roundRect(ox - stemWidth, stemTopY - 6, stemWidth * 2, 8, 3);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#10b981';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.rect(ox - guideWidth / 2, guideY, guideWidth, guideHeight);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.rect(ox - stemWidth / 2 - 2, guideY, stemWidth + 4, guideHeight);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1.2;
+      for (let gy = guideY + 8; gy < guideY + guideHeight; gy += 14) {
+        ctx.beginPath();
+        ctx.moveTo(ox - guideWidth / 2, gy);
+        ctx.lineTo(ox - guideWidth / 2 - 8, gy + 8);
+        ctx.moveTo(ox + guideWidth / 2, gy);
+        ctx.lineTo(ox + guideWidth / 2 + 8, gy + 8);
+        ctx.stroke();
+      }
+
+      if (showSpring) {
+        const springTopY = guideY + guideHeight;
+        const springBottomY = followerBaseY;
+        const springHeight = springBottomY - springTopY;
+
+        if (springHeight > 18) {
+          const coils = 9;
+          const springW = 20;
+
+          ctx.beginPath();
+          ctx.moveTo(ox, springTopY);
+
+          for (let c = 0; c < coils; c++) {
+            const y1 = springTopY + (springHeight / coils) * (c + 0.25);
+            const y2 = springTopY + (springHeight / coils) * (c + 0.75);
+            const y3 = springTopY + (springHeight / coils) * (c + 1.0);
+
+            ctx.lineTo(ox + (c % 2 === 0 ? springW / 2 : -springW / 2), y1);
+            ctx.lineTo(ox + (c % 2 === 0 ? -springW / 2 : springW / 2), y2);
+            ctx.lineTo(ox, y3);
+          }
+
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        }
+      }
+
+      const ptX = ox + contactInfo.contactX;
+      const ptY = oy + contactInfo.contactY;
+      ctx.beginPath();
+      ctx.arc(ptX, ptY, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawAnnotations(ox, oy, currentLift, scale) {
+      const r0Px = r0_base * scale;
+      const strokePx = stroke_h * scale;
+      const liftPx = currentLift * scale;
+
+      if (showStrokeDim) {
+        ctx.save();
+        const dimX = ox + r0Px + strokePx + 40;
+        const yBase = oy - r0Px;
+        const yTop = oy - r0Px - strokePx;
+        const yCur = oy - r0Px - liftPx;
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 4]);
+
+        ctx.beginPath();
+        ctx.moveTo(ox, yBase);
+        ctx.lineTo(dimX + 25, yBase);
+        ctx.moveTo(ox, yTop);
+        ctx.lineTo(dimX + 25, yTop);
+        ctx.moveTo(ox, yCur);
+        ctx.lineTo(dimX - 10, yCur);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.beginPath();
+        ctx.moveTo(dimX, yBase);
+        ctx.lineTo(dimX, yTop);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const arr = 6;
+        ctx.beginPath();
+        ctx.moveTo(dimX, yBase);
+        ctx.lineTo(dimX - arr / 2, yBase - arr);
+        ctx.lineTo(dimX + arr / 2, yBase - arr);
+        ctx.closePath();
+        ctx.moveTo(dimX, yTop);
+        ctx.lineTo(dimX - arr / 2, yTop + arr);
+        ctx.lineTo(dimX + arr / 2, yTop + arr);
+        ctx.closePath();
+        ctx.fillStyle = '#fbbf24';
+        ctx.fill();
+
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 11px Fira Code, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`h = ${stroke_h} mm`, dimX + 8, (yBase + yTop) / 2 + 4);
+
+        ctx.beginPath();
+        ctx.moveTo(dimX - 12, yCur);
+        ctx.lineTo(dimX - 4, yCur);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 10px Fira Code, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`s = ${currentLift.toFixed(1)} mm`, dimX - 16, yCur + 3);
+
+        ctx.restore();
+      }
+
+      if (showVectors && rpm > 0) {
+        ctx.save();
+
+        ctx.strokeStyle = '#ec4899';
+        ctx.fillStyle = '#ec4899';
+        ctx.lineWidth = 3.2;
+        ctx.lineCap = 'round';
+
+        const arcR = r0Px * 0.42;
+        const isCW = (direction === 1);
+        const arcStart = isCW ? Math.PI * 0.8 : Math.PI * 0.2;
+        const arcEnd = isCW ? -Math.PI * 0.2 : Math.PI * 1.2;
+
+        ctx.beginPath();
+        ctx.arc(ox, oy, arcR, arcStart, arcEnd, !isCW);
+        ctx.stroke();
+
+        const ax = ox + arcR * Math.cos(arcEnd);
+        const ay = oy + arcR * Math.sin(arcEnd);
+        const tang = arcEnd + (isCW ? Math.PI / 2 : -Math.PI / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - 8 * Math.cos(tang - Math.PI / 6), ay - 8 * Math.sin(tang - Math.PI / 6));
+        ctx.lineTo(ax - 8 * Math.cos(tang + Math.PI / 6), ay - 8 * Math.sin(tang + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.fillText('ω', ox + arcR + 10, oy);
+
+        const dTh = 0.02;
+        const dummyScale = 1.0;
+        const nextInfo = calculateExactContact(theta + direction * dTh, camType, r0_base, stroke_h, followerType, dummyScale);
+        const vRel = (nextInfo.lift - currentLift) / dTh;
+
+        if (Math.abs(vRel) > 0.15) {
+          const vSign = vRel > 0 ? -1 : 1;
+          const vLen = Math.min(45, Math.abs(vRel) * 1.8 + 12);
+          const vx = ox - 28;
+          const vyStart = oy - r0Px - liftPx - 40;
+          const vyEnd = vyStart + vSign * vLen;
+
+          ctx.strokeStyle = '#10b981';
+          ctx.fillStyle = '#10b981';
+          ctx.lineWidth = 3;
+
+          ctx.beginPath();
+          ctx.moveTo(vx, vyStart);
+          ctx.lineTo(vx, vyEnd);
+          ctx.stroke();
+
+          ctx.beginPath();
+          ctx.moveTo(vx, vyEnd);
+          ctx.lineTo(vx - 5, vyEnd - vSign * 8);
+          ctx.lineTo(vx + 5, vyEnd - vSign * 8);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = 'right';
+          ctx.fillText('v', vx - 6, (vyStart + vyEnd) / 2 + 4);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    function drawElevationGraph(currentTheta) {
+      if (gw <= 0 || gh <= 0) return;
+      gctx.clearRect(0, 0, gw, gh);
+
+      const padLeft = 46;
+      const padRight = 24;
+      const padTop = 14;
+      const padBottom = 22;
+
+      const plotW = gw - padLeft - padRight;
+      const plotH = gh - padTop - padBottom;
+      if (plotW <= 0 || plotH <= 0) return;
+
+      gctx.strokeStyle = '#334155';
+      gctx.lineWidth = 1;
+
+      gctx.beginPath();
+      gctx.moveTo(padLeft, padTop + plotH);
+      gctx.lineTo(padLeft + plotW, padTop + plotH);
+      gctx.stroke();
+
+      gctx.beginPath();
+      gctx.moveTo(padLeft, padTop);
+      gctx.lineTo(padLeft, padTop + plotH);
+      gctx.stroke();
+
+      gctx.fillStyle = '#64748b';
+      gctx.font = '500 9px Fira Code, monospace';
+      gctx.textAlign = 'center';
+
+      [0, 90, 180, 270, 360].forEach(deg => {
+        const x = padLeft + (deg / 360) * plotW;
+        gctx.beginPath();
+        gctx.moveTo(x, padTop + plotH);
+        gctx.lineTo(x, padTop + plotH + 4);
+        gctx.stroke();
+        gctx.fillText(`${deg}°`, x, padTop + plotH + 14);
+      });
+
+      gctx.textAlign = 'right';
+      gctx.fillText('0', padLeft - 6, padTop + plotH + 3);
+      gctx.fillText(`${stroke_h}`, padLeft - 6, padTop + 8);
+      gctx.fillStyle = '#ec4899';
+      gctx.fillText('s(mm)', padLeft - 6, padTop - 3);
+
+      gctx.beginPath();
+      const numPoints = 120;
+      const dummyScale = 1.0;
+
+      for (let i = 0; i <= numPoints; i++) {
+        const deg = (i * 360) / numPoints;
+        const thVal = (deg * Math.PI) / 180;
+        const info = calculateExactContact(thVal, camType, r0_base, stroke_h, followerType, dummyScale);
+        const sVal = info.lift;
+
+        const x = padLeft + (deg / 360) * plotW;
+        const y = padTop + plotH - (sVal / Math.max(1, stroke_h)) * plotH;
+
+        if (i === 0) gctx.moveTo(x, y);
+        else gctx.lineTo(x, y);
+      }
+
+      gctx.strokeStyle = '#f472b6';
+      gctx.lineWidth = 2.2;
+      gctx.stroke();
+
+      gctx.lineTo(padLeft + plotW, padTop + plotH);
+      gctx.lineTo(padLeft, padTop + plotH);
+      gctx.closePath();
+      gctx.fillStyle = 'rgba(236, 72, 153, 0.12)';
+      gctx.fill();
+
+      const curDeg = ((currentTheta * 180 / Math.PI) % 360 + 360) % 360;
+      const curInfo = calculateExactContact(currentTheta, camType, r0_base, stroke_h, followerType, dummyScale);
+      const curLift = curInfo.lift;
+
+      const curX = padLeft + (curDeg / 360) * plotW;
+      const curY = padTop + plotH - (curLift / Math.max(1, stroke_h)) * plotH;
+
+      gctx.beginPath();
+      gctx.moveTo(curX, padTop);
+      gctx.lineTo(curX, padTop + plotH);
+      gctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+      gctx.lineWidth = 1.5;
+      gctx.setLineDash([3, 3]);
+      gctx.stroke();
+      gctx.setLineDash([]);
+
+      gctx.beginPath();
+      gctx.arc(curX, curY, 5, 0, Math.PI * 2);
+      gctx.fillStyle = '#10b981';
+      gctx.fill();
+      gctx.strokeStyle = '#ffffff';
+      gctx.lineWidth = 2;
+      gctx.stroke();
+    }
+
+    let lastTimestamp = 0;
+
+    function renderLoop(currentTimestamp) {
+      if (!lastTimestamp) lastTimestamp = currentTimestamp;
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      // Avance cinemático garantizado en cada cuadro
+      if (isRunning && dt > 0) {
+        const safeDt = Math.min(dt, 0.1);
+        const omega = 2 * Math.PI * (rpm / 60.0);
+        theta += direction * omega * safeDt;
+        updateTelemetry();
+      }
+
+      // Asegurar dimensiones válidas
+      if (cw === 0 || ch === 0) {
+        resizeCanvases();
+      }
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Fondo técnico
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < cw; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      const maxOverallHeight = r0_base + stroke_h + 175;
+      const scale = Math.max(0.85, Math.min(1.8, (ch * 0.70) / maxOverallHeight));
+
+      const originX = cw * 0.44;
+      const originY = ch * 0.70;
+
+      // Eje vertical
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(originX, originY + (r0_base + 30) * scale);
+      ctx.lineTo(originX, originY - maxOverallHeight * scale - 20);
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 6]);
+      ctx.stroke();
+      ctx.restore();
+
+      // 1. Dibujar Leva girando en tiempo real
+      drawCam(originX, originY, theta, scale);
+
+      // 2. Calcular contacto geométrico
+      const contactInfo = calculateExactContact(theta, camType, r0_base, stroke_h, followerType, scale);
+
+      // 3. Dibujar Seguidor y resorte
+      drawFollowerAndSpring(originX, originY, contactInfo, scale);
+
+      // 4. Dibujar Cotas y Vectores
+      drawAnnotations(originX, originY, contactInfo.lift, scale);
+
+      // 5. Dibujar Gráfica de Alzada s(theta)
+      drawElevationGraph(theta);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Arranque garantizado de la animación y del canvas al cargar la ventana
+    window.onload = function() {
+      resizeCanvases();
+      updateTelemetry();
+      lastTimestamp = performance.now();
+      requestAnimationFrame(renderLoop);
+    };
+
+    // Respaldo de arranque inmediato si DOM ya está listo
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      resizeCanvases();
+      updateTelemetry();
+      lastTimestamp = performance.now();
+      requestAnimationFrame(renderLoop);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Polipastos - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #0284c7;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(2, 132, 199, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center shadow-lg shadow-sky-500/20 text-slate-950 font-black">
+        <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <circle cx="12" cy="7" r="4" stroke-width="2.3"/>
+          <circle cx="12" cy="17" r="4" stroke-width="2.3"/>
+          <line x1="8" y1="7" x2="8" y2="17" stroke-width="2"/>
+          <line x1="16" y1="7" x2="16" y2="17" stroke-width="2"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Laboratorio de Polipastos
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Cinemática exacta y cuerdas estrictamente verticales · Factorial vs Potencial (Exponencial)</p>
+      </div>
+    </div>
+
+    <!-- Indicador de Ventaja Mecánica y Conservación -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <div class="flex items-center gap-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
+        <span class="h-2.5 w-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+        <span class="text-slate-300 font-medium">Ventaja Mecánica (VM):</span>
+        <span id="badge-vm" class="text-sky-400 font-bold uppercase tracking-wider text-[11px] font-mono-code">VM = 4 (d_F = 4 · h_R)</span>
+      </div>
+      <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 font-mono-code">
+        ⚡ W_F = W_R = <span id="badge-work-sync">0.0 J</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1750px] w-full mx-auto">
+
+    <!-- Área de Simulación en Canvas y Comparativa de Barras -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[590px] justify-between">
+        
+        <!-- Tarjetas flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Fuerza Aplicada (F) -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-sky-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-sky-400 ring-4 ring-sky-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1">
+                Fuerza Aplicada (F) <span class="text-[9px] bg-sky-500/20 px-1 rounded text-sky-300 font-mono-code">TIRO</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2 font-mono-code">
+                <span id="header-f-val" class="text-sky-300">F = 150.0 N</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-df-val" class="text-cyan-300 text-xs">d_F = 0.00 m</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Carga / Resistencia (R) -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-amber-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-amber-400 ring-4 ring-amber-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                Carga Levantada (R) <span class="text-[9px] bg-amber-500/20 px-1 rounded text-amber-300 font-mono-code">CARGA</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2 font-mono-code">
+                <span id="header-r-val" class="text-amber-300">R = 600 N</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-hr-val" class="text-emerald-300 text-xs">h_R = 0.00 m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Principal -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2 min-h-[430px]">
+          <canvas id="pulleyCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Módulo Comparativo de Barras Métricas d_F vs h_R -->
+        <div class="bg-slate-950/95 border-t border-slate-800/90 px-6 py-3.5 flex flex-col gap-2 z-10">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span class="font-bold text-slate-200 flex items-center gap-2">
+              <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              Comparativa de Recorridos en Vivo:
+              <span class="text-sky-400 font-mono-code">d_F = VM · h_R</span>
+            </span>
+            <div class="text-[11px] font-mono-code text-slate-400 flex items-center gap-4">
+              <span>Relación cinemática: <b id="bar-ratio-tag" class="text-white">d_F = 4 · h_R</b></span>
+              <span class="text-emerald-400 font-bold" id="bar-sync-status">✓ En movimiento continuo</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Barra 1: d_F -->
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30 flex flex-col gap-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-sky-400 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-sky-400"></span> Recorrido de Tiro de la Fuerza (d_F)
+                </span>
+                <span id="metric-df-text" class="font-mono-code font-bold text-sky-300">0.00 m</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800 overflow-hidden">
+                <div id="bar-metric-df" class="bg-gradient-to-r from-sky-600 to-cyan-400 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+                <span>0 m</span>
+                <span id="metric-df-max">Máx: 4.00 m</span>
+              </div>
+            </div>
+
+            <!-- Barra 2: h_R -->
+            <div class="bg-slate-900/80 p-2.5 rounded-xl border border-emerald-500/30 flex flex-col gap-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Elevación de la Carga (h_R)
+                </span>
+                <span id="metric-hr-text" class="font-mono-code font-bold text-emerald-300">0.00 m</span>
+              </div>
+              <div class="w-full bg-slate-950 rounded-full h-3 p-0.5 border border-slate-800 overflow-hidden">
+                <div id="bar-metric-hr" class="bg-gradient-to-r from-emerald-600 to-teal-400 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+                <span>0 m</span>
+                <span>Máx: 1.00 m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Control Inferior -->
+        <div class="bg-slate-950/95 border-t border-slate-800 p-4 px-6 flex flex-col gap-3.5 z-10">
+          
+          <!-- Fila 1: Tipo de Polipasto y Poleas Móviles (n) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 pb-3 border-b border-slate-800/80">
+            <!-- Tipo de Polipasto -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30">
+              <span class="text-xs font-bold text-sky-400 whitespace-nowrap">Tipo:</span>
+              <div class="flex items-center gap-1.5 w-full justify-between" id="group-pulley-type">
+                <button data-type="potential" class="btn-ptype flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-sm transition">Potencial / Exponencial (F = R / 2ⁿ)</button>
+                <button data-type="factorial" class="btn-ptype flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Factorial (F = R / 2n)</button>
+              </div>
+            </div>
+
+            <!-- Número de Poleas Móviles n -->
+            <div class="flex items-center gap-2.5 bg-slate-900/80 p-2.5 rounded-xl border border-indigo-500/30">
+              <span class="text-xs font-bold text-indigo-400 whitespace-nowrap">Poleas Móviles (n):</span>
+              <div class="flex items-center gap-1.5 w-full justify-between" id="group-n-pulleys">
+                <button data-n="1" class="btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">n = 1</button>
+                <button data-n="2" class="btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-sm transition">n = 2</button>
+                <button data-n="3" class="btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">n = 3</button>
+                <button data-n="4" class="btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">n = 4</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila 2: Carga, Velocidad, Deslizador de Elevación y Botones -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5 pb-3 border-b border-slate-800/80 items-center">
+            <!-- Carga R -->
+            <div class="md:col-span-3 flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-amber-500/30">
+              <span class="text-xs font-bold text-amber-400 whitespace-nowrap">Carga R:</span>
+              <input id="slider-r" type="range" min="100" max="1000" step="50" value="600" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+              <span id="val-r-ctrl" class="font-mono-code text-xs font-bold text-amber-300 w-16 text-right">600 N</span>
+            </div>
+
+            <!-- Velocidad -->
+            <div class="md:col-span-3 flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-sky-500/30">
+              <span class="text-xs font-bold text-sky-400 whitespace-nowrap">Velocidad:</span>
+              <input id="slider-speed" type="range" min="0.1" max="1.0" step="0.05" value="0.30" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+              <span id="val-speed-ctrl" class="font-mono-code text-xs font-bold text-sky-300 w-12 text-right">0.30x</span>
+            </div>
+
+            <!-- Deslizador de Elevación Manual -->
+            <div class="md:col-span-3 flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-emerald-500/30">
+              <span class="text-xs font-bold text-emerald-400 whitespace-nowrap">Elevación:</span>
+              <input id="slider-lift" type="range" min="0" max="1" step="0.005" value="0" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+              <span id="val-lift-pct" class="font-mono-code text-xs font-bold text-emerald-300 w-12 text-right">0%</span>
+            </div>
+
+            <!-- Botones -->
+            <div class="md:col-span-3 flex items-center gap-1.5">
+              <button id="btn-toggle-play" class="flex-1 py-2 px-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition active:scale-95 shadow-md text-xs shadow-sky-600/30">
+                <svg id="play-icon" class="w-3.5 h-3.5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
+                </svg>
+                <svg id="pause-icon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span id="btn-play-text">Pausar</span>
+              </button>
+
+              <button id="btn-step-up" class="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Subir paso a paso">
+                <span>▲</span>
+              </button>
+              <button id="btn-step-down" class="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1" title="Bajar paso a paso">
+                <span>▼</span>
+              </button>
+              <button id="btn-reset" class="py-2 px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-medium transition active:scale-95" title="Reiniciar a posición inicial">
+                <span>0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fila 3: Opciones Visuales -->
+          <div class="flex flex-wrap items-center justify-between gap-4 text-xs font-medium text-slate-400">
+            <div class="flex items-center gap-4">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-dynamometers" checked class="rounded border-slate-700 text-sky-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Dinamómetros numéricos</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-distances" checked class="rounded border-slate-700 text-sky-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Cotas animadas ($d_F$, $h_R$)</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-forces" checked class="rounded border-slate-700 text-sky-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Tensiones de cada cuerda en Newtons</span>
+              </label>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              Ley activa: <b id="formula-badge-title" class="text-indigo-300 font-mono-code">F = R / 2ⁿ</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Dinamómetros y Trabajo Mecánico -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Dinamómetro de Fuerza F -->
+        <div class="bg-slate-900/90 border border-sky-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-sky-400 font-bold uppercase tracking-wide mb-1">
+            <span>Fuerza Aplicada (F)</span>
+            <span class="text-slate-400 font-normal">Tiro de la mano</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-f-newtons" class="text-3xl font-extrabold font-mono-code text-sky-400">150.0</span>
+              <span class="text-xs text-sky-300 font-semibold font-mono-code ml-1">N</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              (<span id="counter-f-kg" class="text-slate-200 font-bold">15.3</span> kg equiv.)
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-force" class="bg-sky-500 h-full rounded-full transition-all duration-75" style="width: 25%"></div>
+          </div>
+        </div>
+
+        <!-- Conservación del Trabajo Mecánico (W) -->
+        <div class="bg-slate-900/90 border border-emerald-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center shadow-lg">
+          <div class="text-xs text-emerald-300 font-bold uppercase tracking-wide mb-1">
+            Conservación de la Energía (Trabajo W)
+          </div>
+          <div class="flex items-baseline gap-2 my-1">
+            <span class="text-xs text-slate-400">W_entrada = W_útil =</span>
+            <span id="counter-work-val" class="text-2xl font-black font-mono-code text-emerald-400">0.0</span>
+            <span class="text-xs text-slate-400 font-mono-code">Julios (J)</span>
+          </div>
+          <p id="work-explanation" class="text-[11px] text-slate-400 leading-tight">
+            F · d_F = <span class="text-sky-300 font-mono-code">150 N · 0.0 m</span> = <span class="text-amber-300 font-mono-code">600 N · 0.0 m</span> = R · h_R
+          </p>
+        </div>
+
+        <!-- Dinamómetro de Resistencia R -->
+        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-amber-400 font-bold uppercase tracking-wide mb-1">
+            <span>Carga Elevada (R)</span>
+            <span class="text-slate-400 font-normal">Resistencia</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-r-newtons" class="text-3xl font-extrabold font-mono-code text-amber-400">600.0</span>
+              <span class="text-xs text-amber-300 font-semibold font-mono-code ml-1">N</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              (<span id="counter-r-kg" class="text-slate-200 font-bold">61.2</span> kg masa)
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-resistance" class="bg-amber-500 h-full rounded-full transition-all duration-75" style="width: 60%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            Fundamentos de Polipastos (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Cómo se transmite la fuerza y el movimiento en cada tipo de polipasto.</p>
+        </div>
+
+        <!-- 1. El Polipasto Potencial en Profundidad -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block mb-2">1. Polipasto Potencial (o Exponencial)</span>
+          
+          <div class="space-y-2.5 text-xs text-slate-300">
+            <div id="card-formula-potential" class="p-2.5 rounded-lg border border-indigo-500/40 bg-indigo-950/30">
+              <div class="flex justify-between items-center mb-1">
+                <b class="text-indigo-300">Fórmula de Fuerza:</b>
+                <span class="font-mono-code font-bold text-indigo-400 bg-indigo-500/20 px-2 py-0.5 rounded">F = R / 2ⁿ</span>
+              </div>
+              <p class="text-slate-300 text-[11px] leading-relaxed">
+                • <b>Polea móvil 1:</b> Sostiene la carga completa $R$. Como la cuerda se reparte entre el techo y la siguiente polea, cada mitad soporta $R / 2$.<br>
+                • <b>Polea móvil 2:</b> Cuelga de la cuerda de la polea 1, por lo que soporta $R / 2$. Su propia cuerda se divide entre el techo y la siguiente polea, soportando $R / 4$.<br>
+                • <b>Polea móvil k:</b> Soporta $R / 2^k$.<br>
+                • <b>Polea fija superior:</b> Es una polea de reenvío; no reduce la fuerza, solo cambia la dirección del tiro hacia abajo para tirar cómodamente.
+              </p>
+            </div>
+
+            <!-- Cinemática del Potencial -->
+            <div class="p-2.5 rounded-lg border border-slate-800 bg-slate-900/60 text-[11px] space-y-1">
+              <b class="text-emerald-300 block">Cinemática de las poleas en cascada:</b>
+              <div>• Si la carga sube <b class="text-white font-mono-code">h</b>, la polea móvil 1 sube <b class="text-white font-mono-code">h</b>.</div>
+              <div>• El extremo libre de la cuerda 1 sube el doble: <b class="text-white font-mono-code">2 · h</b>. Por tanto, la polea móvil 2 sube <b class="text-white font-mono-code">2 · h</b>.</div>
+              <div>• La polea móvil $k$ sube <b class="text-indigo-300 font-mono-code">2^(k-1) · h</b>.</div>
+              <div>• La cuerda final se desplaza: <b class="text-sky-300 font-mono-code font-bold">d_F = 2ⁿ · h</b>.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Aparejo Factorial -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-sky-400 uppercase tracking-wider block mb-2">2. Aparejo Factorial</span>
+          <div id="card-formula-factorial" class="p-2.5 rounded-lg border border-slate-800 bg-slate-900/60 text-xs">
+            <div class="flex justify-between items-center mb-1">
+              <b class="text-sky-300">Fórmula de Fuerza:</b>
+              <span class="font-mono-code font-bold text-sky-400 bg-sky-500/20 px-2 py-0.5 rounded">F = R / (2 · n)</span>
+            </div>
+            <p class="text-slate-300 text-[11px] leading-relaxed">
+              Consiste en un bloque de $n$ poleas fijas arriba y $n$ poleas móviles abajo en un mismo soporte. Una sola cuerda recorre todas las poleas, repartiendo la carga entre los $2n$ tramos verticales paralelos.
+              <br>
+              <b class="text-white font-mono-code">d_F = 2 · n · h_R</b>
+            </p>
+          </div>
+        </div>
+
+        <!-- 3. Comprobación en Vivo -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">3. Comprobación en Vivo</span>
+            <span id="badge-calc-name" class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono-code font-bold">n = 2 móviles</span>
+          </div>
+          
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono-code text-xs text-slate-200 space-y-2">
+            <div class="flex justify-between items-center">
+              <span>Fórmula activa:</span>
+              <span id="live-formula-math" class="text-indigo-400 font-bold">F = R / 2² = R / 4</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Fuerza de tiro F:</span>
+              <span id="live-formula-values" class="text-amber-400 font-bold">F = 600 N / 4 = 150.0 N</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-400 pt-1 border-t border-slate-800 text-[11px]">
+              <span>Ventaja Mecánica (VM):</span>
+              <span id="live-vm-val" class="text-white font-bold">4</span>
+            </div>
+            <div class="flex justify-between items-center text-emerald-400 text-[11px]">
+              <span>Relación de recorrido:</span>
+              <span id="live-distance-relation" class="font-bold">d_F = 4 · h_R</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Conservación de la Energía -->
+        <div class="bg-emerald-950/40 rounded-xl p-4 border border-emerald-500/40 text-xs text-slate-300 space-y-1.5">
+          <b class="text-emerald-300 flex items-center gap-1.5">
+            <span>⚡ La Ley de Oro de la Mecánica:</span>
+          </b>
+          <p class="leading-relaxed text-[11px]">
+            "Lo que se gana en fuerza se pierde en desplazamiento". Ninguna máquina puede crear energía por sí misma: el trabajo de entrada (<span class="font-mono-code text-sky-300">W = F · d_F</span>) es idéntico a la energía potencial ganada por la carga (<span class="font-mono-code text-amber-300">W = R · h_R</span>).
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- ESTADO Y PARÁMETROS CINEMÁTICOS ---
+    let pulleyType = 'potential'; // 'potential' o 'factorial'
+    let nPulleys = 2;             // 1, 2, 3, 4 poleas móviles
+    let resistanceR = 600;        // Newtons (100 a 1000 N)
+    
+    // Elevación normalizada de la carga: 0.0 (suelo) a 1.0 (máxima altura)
+    let liftProgress = 0.0;
+    const maxLiftHeightMeters = 1.0;
+
+    // Animación continua
+    let isPlaying = true;
+    let animSpeed = 0.30;
+    let animDirection = 1;
+
+    // Opciones didácticas
+    let showDynamometers = true;
+    let showDistances = true;
+    let showForces = true;
+
+    // Referencias DOM
+    const canvas = document.getElementById('pulleyCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const groupPulleyType = document.getElementById('group-pulley-type');
+    const groupNPulleys = document.getElementById('group-n-pulleys');
+
+    const sliderR = document.getElementById('slider-r');
+    const valRCtrl = document.getElementById('val-r-ctrl');
+    const sliderSpeed = document.getElementById('slider-speed');
+    const valSpeedCtrl = document.getElementById('val-speed-ctrl');
+    const sliderLift = document.getElementById('slider-lift');
+    const valLiftPct = document.getElementById('val-lift-pct');
+
+    const btnTogglePlay = document.getElementById('btn-toggle-play');
+    const btnPlayText = document.getElementById('btn-play-text');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnStepUp = document.getElementById('btn-step-up');
+    const btnStepDown = document.getElementById('btn-step-down');
+    const btnReset = document.getElementById('btn-reset');
+
+    const headerFVal = document.getElementById('header-f-val');
+    const headerDfVal = document.getElementById('header-df-val');
+    const headerRVal = document.getElementById('header-r-val');
+    const headerHrVal = document.getElementById('header-hr-val');
+    const badgeVm = document.getElementById('badge-vm');
+    const badgeWorkSync = document.getElementById('badge-work-sync');
+    const formulaBadgeTitle = document.getElementById('formula-badge-title');
+
+    const metricDfText = document.getElementById('metric-df-text');
+    const metricHrText = document.getElementById('metric-hr-text');
+    const metricDfMax = document.getElementById('metric-df-max');
+    const barMetricDf = document.getElementById('bar-metric-df');
+    const barMetricHr = document.getElementById('bar-metric-hr');
+    const barRatioTag = document.getElementById('bar-ratio-tag');
+    const barSyncStatus = document.getElementById('bar-sync-status');
+
+    const counterFNewtons = document.getElementById('counter-f-newtons');
+    const counterFKg = document.getElementById('counter-f-kg');
+    const progForce = document.getElementById('prog-force');
+    const counterWorkVal = document.getElementById('counter-work-val');
+    const workExplanation = document.getElementById('work-explanation');
+    const counterRNewtons = document.getElementById('counter-r-newtons');
+    const counterRKg = document.getElementById('counter-r-kg');
+    const progResistance = document.getElementById('prog-resistance');
+
+    const cardFormulaFactorial = document.getElementById('card-formula-factorial');
+    const cardFormulaPotential = document.getElementById('card-formula-potential');
+    const badgeCalcName = document.getElementById('badge-calc-name');
+    const liveFormulaMath = document.getElementById('live-formula-math');
+    const liveFormulaValues = document.getElementById('live-formula-values');
+    const liveVmVal = document.getElementById('live-vm-val');
+    const liveDistanceRelation = document.getElementById('live-distance-relation');
+
+    const chkDynamometers = document.getElementById('chk-dynamometers');
+    const chkDistances = document.getElementById('chk-distances');
+    const chkForces = document.getElementById('chk-forces');
+
+    let cw = 0, ch = 0;
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      cw = rect.width;
+      ch = rect.height;
+      if (cw > 0 && ch > 0) {
+        canvas.width = Math.floor(cw * dpr);
+        canvas.height = Math.floor(ch * dpr);
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+      }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // --- CÁLCULOS CINEMÁTICOS ---
+    function getMechanicalAdvantage() {
+      return (pulleyType === 'factorial') ? (2 * nPulleys) : Math.pow(2, nPulleys);
+    }
+
+    function calculateForceF() {
+      return resistanceR / getMechanicalAdvantage();
+    }
+
+    function updateTelemetry() {
+      const vm = getMechanicalAdvantage();
+      const forceF = calculateForceF();
+      const massR = resistanceR / 9.81;
+      const massF = forceF / 9.81;
+
+      const h_R = liftProgress * maxLiftHeightMeters;
+      const d_F = h_R * vm;
+      const workJ = forceF * d_F;
+
+      // Encabezados
+      headerFVal.textContent = `F = ${forceF.toFixed(1)} N`;
+      headerDfVal.textContent = `d_F = ${d_F.toFixed(2)} m`;
+      headerRVal.textContent = `R = ${resistanceR} N`;
+      headerHrVal.textContent = `h_R = ${h_R.toFixed(2)} m`;
+
+      badgeVm.textContent = `VM = ${vm} (d_F = ${vm} · h_R)`;
+      badgeWorkSync.textContent = `${workJ.toFixed(1)} J`;
+      valLiftPct.textContent = `${Math.round(liftProgress * 100)}%`;
+      sliderLift.value = liftProgress;
+
+      // Barras comparadoras de desplazamiento
+      metricDfText.textContent = `${d_F.toFixed(2)} m`;
+      metricHrText.textContent = `${h_R.toFixed(2)} m`;
+      metricDfMax.textContent = `Máx: ${(maxLiftHeightMeters * vm).toFixed(2)} m`;
+
+      const pctDf = liftProgress * 100;
+      const pctHr = liftProgress * 100;
+      barMetricDf.style.width = `${pctDf.toFixed(1)}%`;
+      barMetricHr.style.width = `${pctHr.toFixed(1)}%`;
+      barRatioTag.textContent = `d_F = ${vm} · h_R`;
+
+      // Dinamómetros
+      counterFNewtons.textContent = forceF.toFixed(1);
+      counterFKg.textContent = massF.toFixed(1);
+      progForce.style.width = `${Math.min(100, (forceF / 500) * 100).toFixed(1)}%`;
+
+      counterRNewtons.textContent = resistanceR.toFixed(1);
+      counterRKg.textContent = massR.toFixed(1);
+      progResistance.style.width = `${Math.min(100, (resistanceR / 1000) * 100).toFixed(1)}%`;
+
+      counterWorkVal.textContent = workJ.toFixed(1);
+      workExplanation.innerHTML = `F · d_F = <span class="text-sky-300 font-mono-code">${forceF.toFixed(1)} N · ${d_F.toFixed(2)} m</span> = <span class="text-amber-300 font-mono-code">${resistanceR} N · ${h_R.toFixed(2)} m</span> = R · h_R`;
+
+      // Panel Pedagógico
+      badgeCalcName.textContent = `n = ${nPulleys} móviles`;
+      liveVmVal.textContent = `${vm}`;
+      liveDistanceRelation.textContent = `d_F = ${vm} · h_R`;
+
+      if (pulleyType === 'factorial') {
+        formulaBadgeTitle.textContent = `F = R / (2·n)`;
+        cardFormulaFactorial.className = "p-2.5 rounded-lg border border-sky-500/40 bg-sky-950/30 text-xs";
+        cardFormulaPotential.className = "p-2.5 rounded-lg border border-slate-800 bg-slate-900/40 opacity-60 text-xs";
+        liveFormulaMath.textContent = `F = R / (2 · ${nPulleys}) = R / ${vm}`;
+        liveFormulaValues.textContent = `F = ${resistanceR} N / ${vm} = ${forceF.toFixed(1)} N`;
+      } else {
+        formulaBadgeTitle.textContent = `F = R / 2ⁿ`;
+        cardFormulaFactorial.className = "p-2.5 rounded-lg border border-slate-800 bg-slate-900/40 opacity-60 text-xs";
+        cardFormulaPotential.className = "p-2.5 rounded-lg border border-indigo-500/40 bg-indigo-950/30 text-xs";
+        liveFormulaMath.textContent = `F = R / 2^${nPulleys} = R / ${vm}`;
+        liveFormulaValues.textContent = `F = ${resistanceR} N / ${vm} = ${forceF.toFixed(1)} N`;
+      }
+    }
+
+    // --- MANEJADORES DE EVENTOS ---
+    groupPulleyType.querySelectorAll('.btn-ptype').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupPulleyType.querySelectorAll('.btn-ptype').forEach(b => {
+          b.className = 'btn-ptype flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-ptype flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-sm transition';
+        pulleyType = btn.getAttribute('data-type');
+        liftProgress = 0.0;
+        animDirection = 1;
+        updateTelemetry();
+      });
+    });
+
+    groupNPulleys.querySelectorAll('.btn-n').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupNPulleys.querySelectorAll('.btn-n').forEach(b => {
+          b.className = 'btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-n flex-1 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-sm transition';
+        nPulleys = parseInt(btn.getAttribute('data-n'));
+        liftProgress = 0.0;
+        animDirection = 1;
+        updateTelemetry();
+      });
+    });
+
+    sliderR.addEventListener('input', (e) => {
+      resistanceR = parseInt(e.target.value);
+      valRCtrl.textContent = `${resistanceR} N`;
+      updateTelemetry();
+    });
+
+    sliderSpeed.addEventListener('input', (e) => {
+      animSpeed = parseFloat(e.target.value);
+      valSpeedCtrl.textContent = `${animSpeed.toFixed(2)}x`;
+    });
+
+    sliderLift.addEventListener('input', (e) => {
+      liftProgress = parseFloat(e.target.value);
+      if (isPlaying) {
+        isPlaying = false;
+        btnPlayText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        barSyncStatus.textContent = "⏸ Pausado manualmente";
+        barSyncStatus.className = "text-amber-400 font-bold";
+      }
+      updateTelemetry();
+    });
+
+    btnTogglePlay.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        btnPlayText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        barSyncStatus.textContent = "✓ En movimiento continuo";
+        barSyncStatus.className = "text-emerald-400 font-bold";
+        lastTimestamp = performance.now();
+      } else {
+        btnPlayText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        barSyncStatus.textContent = "⏸ Pausado";
+        barSyncStatus.className = "text-amber-400 font-bold";
+      }
+    });
+
+    btnStepUp.addEventListener('click', () => {
+      if (isPlaying) {
+        isPlaying = false;
+        btnPlayText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        barSyncStatus.textContent = "⏸ Pausado";
+        barSyncStatus.className = "text-amber-400 font-bold";
+      }
+      liftProgress = Math.min(1.0, liftProgress + 0.08);
+      updateTelemetry();
+    });
+
+    btnStepDown.addEventListener('click', () => {
+      if (isPlaying) {
+        isPlaying = false;
+        btnPlayText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        barSyncStatus.textContent = "⏸ Pausado";
+        barSyncStatus.className = "text-amber-400 font-bold";
+      }
+      liftProgress = Math.max(0.0, liftProgress - 0.08);
+      updateTelemetry();
+    });
+
+    btnReset.addEventListener('click', () => {
+      liftProgress = 0.0;
+      animDirection = 1;
+      updateTelemetry();
+    });
+
+    chkDynamometers.addEventListener('change', (e) => { showDynamometers = e.target.checked; });
+    chkDistances.addEventListener('change', (e) => { showDistances = e.target.checked; });
+    chkForces.addEventListener('change', (e) => { showForces = e.target.checked; });
+
+    // --- FUNCIONES DE DIBUJO ---
+    function drawCeiling(xStart, xEnd, y) {
+      ctx.save();
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(xStart, y - 14, xEnd - xStart, 14);
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(xStart, y - 14, xEnd - xStart, 14);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1.2;
+      for (let lx = xStart + 8; lx < xEnd; lx += 14) {
+        ctx.beginPath();
+        ctx.moveTo(lx, y - 14);
+        ctx.lineTo(lx - 10, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawPulley(cx, cy, radius, isFixed = true, colorTheme = 'sky', label = null) {
+      ctx.save();
+      ctx.fillStyle = '#334155';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.8;
+
+      if (isFixed) {
+        // Soporte superior hacia el techo
+        ctx.beginPath();
+        ctx.rect(cx - 5, cy - radius - 16, 10, 16);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        // Horquilla/gancho inferior
+        ctx.beginPath();
+        ctx.rect(cx - 5, cy, 10, radius + 12);
+        ctx.fill();
+        ctx.stroke();
+
+        // Ojal/gancho inferior donde se amarra la carga o la siguiente cuerda
+        ctx.beginPath();
+        ctx.arc(cx, cy + radius + 12, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a';
+        ctx.fill();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.stroke();
+      }
+
+      const grad = ctx.createRadialGradient(cx, cy, radius * 0.2, cx, cy, radius);
+      if (colorTheme === 'amber') {
+        grad.addColorStop(0, '#fef08a');
+        grad.addColorStop(0.5, '#f59e0b');
+        grad.addColorStop(1, '#b45309');
+      } else if (colorTheme === 'indigo') {
+        grad.addColorStop(0, '#e0e7ff');
+        grad.addColorStop(0.5, '#6366f1');
+        grad.addColorStop(1, '#4338ca');
+      } else {
+        grad.addColorStop(0, '#bae6fd');
+        grad.addColorStop(0.5, '#0284c7');
+        grad.addColorStop(1, '#0369a1');
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 0.72, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      if (label) {
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 9px Fira Code, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, cx, cy);
+      }
+
+      ctx.restore();
+    }
+
+    function drawRopeSegment(p1, p2, tensionN = null) {
+      ctx.save();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      if (showForces && tensionN !== null && Math.hypot(p2.x - p1.x, p2.y - p1.y) > 36) {
+        const mx = (p1.x + p2.x) / 2;
+        const my = (p1.y + p2.y) / 2;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(mx - 22, my - 8, 44, 16);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(mx - 22, my - 8, 44, 16);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 9px Fira Code, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${tensionN.toFixed(0)}N`, mx, my);
+      }
+      ctx.restore();
+    }
+
+    function drawLoadWeight(cx, cy, width, height, loadN) {
+      ctx.save();
+      // Gancho
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8, 8, 0, Math.PI);
+      ctx.stroke();
+
+      const grad = ctx.createLinearGradient(cx - width / 2, cy, cx + width / 2, cy);
+      grad.addColorStop(0, '#f59e0b');
+      grad.addColorStop(0.5, '#d97706');
+      grad.addColorStop(1, '#92400e');
+
+      ctx.beginPath();
+      ctx.roundRect(cx - width / 2, cy, width, height, 8);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      if (showDynamometers) {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(cx - width / 2 + 8, cy + 6, width - 16, height - 12, 4);
+        ctx.fill();
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = 'bold 12px Fira Code, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${loadN} N`, cx, cy + height / 2);
+        ctx.font = '500 9px Inter, sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(`R (Carga)`, cx, cy + height / 2 + 13);
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`R = ${loadN} N`, cx, cy + height / 2 + 4);
+      }
+
+      ctx.restore();
+    }
+
+    function drawPullingHand(hx, hy, forceN) {
+      ctx.save();
+      const arrowLen = 38;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.fillStyle = '#38bdf8';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(hx, hy + arrowLen);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(hx, hy + arrowLen);
+      ctx.lineTo(hx - 6, hy + arrowLen - 8);
+      ctx.lineTo(hx + 6, hy + arrowLen - 8);
+      ctx.closePath();
+      ctx.fill();
+
+      if (showDynamometers) {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(hx - 26, hy - 20, 52, 20, 5);
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 10px Fira Code, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${forceN.toFixed(1)} N`, hx, hy - 6);
+      } else {
+        ctx.fillStyle = '#0284c7';
+        ctx.beginPath();
+        ctx.roundRect(hx - 18, hy - 7, 36, 14, 5);
+        ctx.fill();
+        ctx.strokeStyle = '#e0f2fe';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Fuerza F`, hx + 16, hy + arrowLen / 2 + 3);
+
+      ctx.restore();
+    }
+
+    function drawAnimatedRuler(x, yInitial, yCurrent, labelText, colorHex, isDownward = true) {
+      if (!showDistances) return;
+      ctx.save();
+
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+
+      ctx.beginPath();
+      ctx.moveTo(x - 12, yInitial);
+      ctx.lineTo(x + 12, yInitial);
+      ctx.moveTo(x - 12, yCurrent);
+      ctx.lineTo(x + 12, yCurrent);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(x, yInitial);
+      ctx.lineTo(x, yCurrent);
+      ctx.stroke();
+
+      const sign = isDownward ? 1 : -1;
+      const headSize = 6;
+      ctx.fillStyle = colorHex;
+      ctx.beginPath();
+      ctx.moveTo(x, yCurrent);
+      ctx.lineTo(x - headSize, yCurrent - sign * headSize);
+      ctx.lineTo(x + headSize, yCurrent - sign * headSize);
+      ctx.closePath();
+      ctx.fill();
+
+      const midY = (yInitial + yCurrent) / 2;
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(x + 8, midY - 11, 105, 22);
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(x + 8, midY - 11, 105, 22);
+
+      ctx.fillStyle = colorHex;
+      ctx.font = 'bold 11px Fira Code, monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(labelText, x + 14, midY);
+
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // RENDERIZADO POLIPASTO POTENCIAL (EXPONENCIAL) MATEMÁTICAMENTE EXACTO
+    // =========================================================================
+    function renderPotential(topY, bottomFloorY, maxTravelPx) {
+      const pR = 17;
+      const pD = 2 * pR; // Diámetro = 34 px
+      const tensionF = calculateForceF();
+      const vm = getMechanicalAdvantage(); // 2^n
+
+      // Escala de elevación base para la carga R (Polea Móvil 1):
+      // Para que la última cuerda (2^n * h_base) quepa dentro de la altura del canvas
+      const maxAvailableRopeTravel = (bottomFloorY - topY - 120);
+      const baseMaxTravelPx = Math.min(65, maxAvailableRopeTravel / vm);
+      
+      const loadTravelPx = liftProgress * baseMaxTravelPx; // h en píxeles
+
+      // Posicionamiento horizontal de las poleas:
+      // Polea móvil 1 está a la izquierda.
+      // Cada polea móvil k tiene su tangente izquierda amarrada al techo.
+      // Su tangente derecha sube verticalmente al eje de la polea móvil k+1.
+      // Por tanto, el eje de la polea móvil k+1 está alineado con la tangente derecha de la polea k:
+      // x_{k+1} = x_k + pR.
+      // La polea fija final superior recibe la cuerda de la última polea móvil:
+      // Su tangente izquierda está alineada con la tangente derecha de la polea móvil n:
+      // x_fija - pR = x_n + pR  =>  x_fija = x_n + 2*pR.
+      // Cuerda final cae desde la tangente derecha de la polea fija: x_hand = x_fija + pR.
+
+      // Centramos el conjunto en la pantalla
+      const totalWidthPx = (nPulleys + 1.5) * pD;
+      const startX = (cw * 0.44) - (totalWidthPx / 2);
+
+      // Coordenadas X de cada polea móvil:
+      const movingX = [];
+      for (let k = 0; k < nPulleys; k++) {
+        movingX.push(startX + k * (pR + 18));
+      }
+      const fixedX = movingX[nPulleys - 1] + 2 * pR;
+      const fixedY = topY + 28;
+
+      // Coordenadas Y base (iniciales en reposo con liftProgress = 0)
+      // Polea 1 (la más baja) cuelga cerca del suelo
+      const baseInitialY = bottomFloorY - 120;
+      
+      // En reposo, colocamos escalonadas las poleas para que no se choquen
+      const initialY = [];
+      for (let k = 0; k < nPulleys; k++) {
+        // Escalonamiento de seguridad inicial
+        initialY.push(baseInitialY - k * 45);
+      }
+
+      // CINEMÁTICA EXACTA:
+      // Polea móvil k sube: 2^(k) * h / 2 = 2^(k-1) * h
+      // Para k=0 (Polea 1): sube 2^0 * h = h
+      // Para k=1 (Polea 2): sube 2^1 * h = 2h
+      // Para k=2 (Polea 3): sube 2^2 * h = 4h
+      // Para k=3 (Polea 4): sube 2^3 * h = 8h
+      const currentY = [];
+      for (let k = 0; k < nPulleys; k++) {
+        const lift_k = Math.pow(2, k) * loadTravelPx;
+        currentY.push(initialY[k] - lift_k);
+      }
+
+      // 1. Dibujar Techo
+      drawCeiling(startX - pR - 30, fixedX + pR + 70, topY);
+
+      // 2. Dibujar Polea Fija Superior de Reenvío
+      drawPulley(fixedX, fixedY, pR, true, 'sky', 'F');
+
+      // 3. Dibujar Poleas Móviles
+      for (let k = 0; k < nPulleys; k++) {
+        drawPulley(movingX[k], currentY[k], pR, false, 'amber', `M${k + 1}`);
+      }
+
+      // 4. Enhebrado de cuerdas con tangentes estrictamente verticales
+      for (let k = 0; k < nPulleys; k++) {
+        const mx = movingX[k];
+        const my = currentY[k];
+        const tension_k = resistanceR / Math.pow(2, k + 1);
+
+        // Ramal izquierdo: tangente izquierda (mx - pR) sube verticalmente hasta el anclaje fijo del techo
+        const anchorX = mx - pR;
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(anchorX - 5, topY - 4, 10, 8);
+        drawRopeSegment({ x: anchorX, y: topY }, { x: anchorX, y: my }, tension_k);
+
+        // Abraza por debajo a la polea móvil k
+        ctx.save();
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.arc(mx, my, pR, Math.PI, 0, true);
+        ctx.stroke();
+        ctx.restore();
+
+        // Ramal derecho: tangente derecha (mx + pR) sube verticalmente
+        const rightRopeX = mx + pR;
+        
+        if (k < nPulleys - 1) {
+          // Sube al eje/gancho inferior de la siguiente polea móvil (k + 1)
+          const nextPulley = { x: movingX[k + 1], y: currentY[k + 1] };
+          const hookY = nextPulley.y + pR + 12;
+
+          // Se conecta en vertical directamente al gancho
+          drawRopeSegment({ x: rightRopeX, y: my }, { x: nextPulley.x, y: hookY }, tension_k);
+
+          // Rótulo de identificación si está activado
+          if (showForces) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '500 9px Inter, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Cuerda ${k + 1}`, rightRopeX + 4, (my + hookY) / 2);
+          }
+        } else {
+          // La cuerda de la última polea móvil sube verticalmente a la tangente izquierda de la polea fija
+          const fixedLeftRopeX = fixedX - pR;
+          drawRopeSegment({ x: rightRopeX, y: my }, { x: fixedLeftRopeX, y: fixedY }, tension_k);
+        }
+      }
+
+      // Semiarco superior en polea fija
+      ctx.save();
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      ctx.arc(fixedX, fixedY, pR, Math.PI, 0, false);
+      ctx.stroke();
+      ctx.restore();
+
+      // Cuerda final de tracción hacia la mano: cae vertical desde la tangente derecha de la polea fija
+      const handX = fixedX + pR;
+      const initialHandY = fixedY + 50;
+      const ropePullTravelPx = loadTravelPx * vm; // 2^n * h
+      const currentHandY = initialHandY + ropePullTravelPx;
+
+      drawRopeSegment({ x: handX, y: fixedY }, { x: handX, y: currentHandY }, tensionF);
+      drawPullingHand(handX, currentHandY, tensionF);
+
+      // Carga R suspendida directamente del eje de la Polea Móvil 1
+      const p1X = movingX[0];
+      const p1Y = currentY[0];
+      const loadTopY = p1Y + pR + 32;
+      const initialLoadTopY = initialY[0] + pR + 32;
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(p1X, p1Y + pR + 12);
+      ctx.lineTo(p1X, loadTopY);
+      ctx.stroke();
+
+      drawLoadWeight(p1X, loadTopY, 78, 55, resistanceR);
+
+      // Cotas métricas en vivo
+      const h_R = liftProgress * maxLiftHeightMeters;
+      const d_F = h_R * vm;
+
+      drawAnimatedRuler(p1X - pR - 35, initialLoadTopY, loadTopY, `h_R = ${h_R.toFixed(2)}m`, '#10b981', false);
+      drawAnimatedRuler(handX + 28, initialHandY, currentHandY, `d_F = ${d_F.toFixed(2)}m`, '#38bdf8', true);
+    }
+
+    // =========================================================================
+    // RENDERIZADO APAREJO FACTORIAL MATEMÁTICAMENTE EXACTO
+    // =========================================================================
+    function renderFactorial(topY, bottomFloorY, maxTravelPx) {
+      const pR = 18;
+      const pD = 2 * pR;
+      const tensionF = calculateForceF();
+      const vm = getMechanicalAdvantage(); // 2*n
+
+      // Separación horizontal entre poleas consecutivas dentro de cada bloque
+      // Cada polea móvil está desplazada exactamente un diámetro (2*pR) hacia la izquierda
+      // respecto a su correspondiente polea fija superior:
+      // Tangente derecha de móvil i = mx_i + pR
+      // Tangente izquierda de fija i = fx_i - pR
+      // Para que coincidan en la misma vertical: mx_i + pR = fx_i - pR  =>  fx_i - mx_i = 2*pR
+      const pulleyPitch = pD * 1.5; // Espaciado entre poleas del mismo bloque
+      const fixedStartX = cw * 0.44 - ((nPulleys - 1) * pulleyPitch) / 2;
+      const movingStartX = fixedStartX - pD; // Desfase de un diámetro completo
+      const fixedY = topY + 28;
+
+      const baseMaxTravelPx = Math.min(80, (bottomFloorY - topY - 140) / vm);
+      const loadTravelPx = liftProgress * baseMaxTravelPx;
+      const ropePullTravelPx = loadTravelPx * vm; // 2n * h
+
+      const initialMovingY = bottomFloorY - 110;
+      const currentMovingY = initialMovingY - loadTravelPx;
+
+      drawCeiling(cw * 0.12, cw * 0.88, topY);
+
+      // Travesaño rígido del bloque móvil inferior
+      const barLeft = movingStartX - pR - 10;
+      const barRight = movingStartX + (nPulleys - 1) * pulleyPitch + pR + 10;
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.roundRect(barLeft, currentMovingY + pR + 4, barRight - barLeft, 12, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const loadCenterX = (barLeft + barRight) / 2;
+      const loadTopY = currentMovingY + pR + 36;
+      const initialLoadTopY = initialMovingY + pR + 36;
+
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(loadCenterX, currentMovingY + pR + 16);
+      ctx.lineTo(loadCenterX, loadTopY);
+      ctx.stroke();
+
+      // 1. Dibujar Poleas Fijas Superiores
+      for (let i = 0; i < nPulleys; i++) {
+        const fx = fixedStartX + i * pulleyPitch;
+        drawPulley(fx, fixedY, pR, true, 'sky', `F${i + 1}`);
+      }
+
+      // 2. Dibujar Poleas Móviles Inferiores
+      for (let i = 0; i < nPulleys; i++) {
+        const mx = movingStartX + i * pulleyPitch;
+        drawPulley(mx, currentMovingY, pR, false, 'amber', `M${i + 1}`);
+      }
+
+      // 3. Enhebrado riguroso de cuerdas en la periferia tangencial exacta
+      // Anclaje al techo: cae verticalmente por la tangente izquierda de la móvil 0
+      const anchorX = movingStartX - pR;
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(anchorX - 5, topY - 4, 10, 8);
+      drawRopeSegment({ x: anchorX, y: topY }, { x: anchorX, y: currentMovingY }, tensionF);
+
+      for (let i = 0; i < nPulleys; i++) {
+        const mx = movingStartX + i * pulleyPitch;
+        const fx = fixedStartX + i * pulleyPitch;
+
+        // Semiarco inferior envolviendo la periferia de la móvil i
+        ctx.save();
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.arc(mx, currentMovingY, pR, Math.PI, 0, true);
+        ctx.stroke();
+        ctx.restore();
+
+        // Tramo vertical de ascenso: conecta tangente derecha de móvil i (mx + pR)
+        // con tangente izquierda de fija i (fx - pR) de forma estrictamente perpendicular
+        const tangentAscentX = mx + pR; // Idéntico a fx - pR
+        drawRopeSegment({ x: tangentAscentX, y: currentMovingY }, { x: tangentAscentX, y: fixedY }, tensionF);
+
+        // Semiarco superior envolviendo la periferia de la fija i
+        ctx.save();
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.arc(fx, fixedY, pR, Math.PI, 0, false);
+        ctx.stroke();
+        ctx.restore();
+
+        // Tramo de descenso: desde la tangente derecha de la fija i (fx + pR)
+        // hacia la tangente izquierda de la siguiente móvil i+1 (mx_{i+1} - pR)
+        if (i < nPulleys - 1) {
+          const nextMx = movingStartX + (i + 1) * pulleyPitch;
+          const tangentDescentX = fx + pR; // Tangente exterior fija i
+          const targetTangentX = nextMx - pR; // Tangente exterior móvil i+1
+
+          // Como pulleyPitch = pD * 1.5 y fx = mx + pD:
+          // fx + pR = mx + 2*pR + pR = mx + 3*pR
+          // nextMx - pR = (mx + pulleyPitch) - pR = mx + 3*pR - pR = mx + 2*pR
+          // Trazamos el tramo conectando tangentes exteriores limpiamente
+          drawRopeSegment({ x: tangentDescentX, y: fixedY }, { x: targetTangentX, y: currentMovingY }, tensionF);
+        }
+      }
+
+      // Cuerda final de tracción hacia la mano:
+      // Cae estrictamente vertical desde la tangente derecha exterior de la última polea fija
+      const lastFx = fixedStartX + (nPulleys - 1) * pulleyPitch;
+      const handX = lastFx + pR;
+      const initialHandY = fixedY + 55;
+      const currentHandY = initialHandY + ropePullTravelPx;
+
+      drawRopeSegment({ x: handX, y: fixedY }, { x: handX, y: currentHandY }, tensionF);
+      drawPullingHand(handX, currentHandY, tensionF);
+
+      // Carga R
+      drawLoadWeight(loadCenterX, loadTopY, 78, 55, resistanceR);
+
+      // Cotas animadas
+      const h_R = liftProgress * maxLiftHeightMeters;
+      const d_F = h_R * vm;
+
+      drawAnimatedRuler(barLeft - 28, initialLoadTopY, loadTopY, `h_R = ${h_R.toFixed(2)}m`, '#10b981', false);
+      drawAnimatedRuler(handX + 28, initialHandY, currentHandY, `d_F = ${d_F.toFixed(2)}m`, '#38bdf8', true);
+    }
+
+    // --- BUCLE PRINCIPAL DE ANIMACIÓN ---
+    let lastTimestamp = 0;
+
+    function renderLoop(currentTimestamp) {
+      if (!lastTimestamp) lastTimestamp = currentTimestamp;
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      if (isPlaying && dt > 0) {
+        const safeDt = Math.min(dt, 0.1);
+        liftProgress += animDirection * animSpeed * safeDt;
+
+        if (liftProgress >= 1.0) {
+          liftProgress = 1.0;
+          animDirection = -1;
+        } else if (liftProgress <= 0.0) {
+          liftProgress = 0.0;
+          animDirection = 1;
+        }
+        updateTelemetry();
+      }
+
+      if (cw === 0 || ch === 0) {
+        resizeCanvas();
+      }
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Fondo cuadriculado
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < cw; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      const topCeilingY = 55;
+      const bottomFloorY = ch - 45;
+      const maxTravelPx = bottomFloorY - topCeilingY;
+
+      if (pulleyType === 'potential') {
+        renderPotential(topCeilingY, bottomFloorY, maxTravelPx);
+      } else {
+        renderFactorial(topCeilingY, bottomFloorY, maxTravelPx);
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    window.onload = function() {
+      resizeCanvas();
+      updateTelemetry();
+      lastTimestamp = performance.now();
+      requestAnimationFrame(renderLoop);
+    };
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      resizeCanvas();
+      updateTelemetry();
+      lastTimestamp = performance.now();
+      requestAnimationFrame(renderLoop);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Tornillo sin Fin y Corona - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #06b6d4;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-amber-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <svg class="w-6 h-6 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 7v10M8 5v14M12 7v10M16 5v14M20 7v10M3 12h18"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Tornillo sin Fin y Rueda Dentada (Corona)
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Tecnología y Digitalización · Reductores irreversibles y ejes ortogonales</p>
+      </div>
+    </div>
+
+    <!-- Indicador de propiedades clave: Reductor e Irreversible -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <span class="bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
+        Gran Reductor (<span id="badge-factor">1:20</span>)
+      </span>
+      <span class="bg-rose-500/20 text-rose-300 border border-rose-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5" title="La corona nunca puede mover al tornillo">
+        🔒 Mecanismo Irreversible (Autoblocante)
+      </span>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1700px] w-full mx-auto">
+
+    <!-- Área de Animación y Simulación (Canvas) -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[500px] justify-between">
+        
+        <!-- Indicadores flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Tornillo sin Fin (Motriz) -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-cyan-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-cyan-400 ring-4 ring-cyan-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider">Tornillo sin Fin (Eje Motriz 1)</div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-z1">Z₁ = 1 entrada</span>
+                <span class="text-slate-500">|</span>
+                <span id="label-rpm1" class="text-cyan-300 font-mono-code">60.0 RPM</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Corona Dentada (Conducida) -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-amber-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-amber-400 ring-4 ring-amber-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Corona Dentada (Eje Conducido 2)</div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-z2">Z₂ = 20 dientes</span>
+                <span class="text-slate-500">|</span>
+                <span id="label-rpm2" class="text-amber-300 font-mono-code">3.0 RPM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas Interactivo -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2 min-h-[380px]">
+          <canvas id="wormGearCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Barra de Control Inferior -->
+        <div class="bg-slate-950/95 border-t border-slate-800 p-4 px-6 flex flex-col gap-3 z-10">
+          
+          <!-- Controles de Z1 (Entradas) y Z2 (Dientes Corona) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-3 border-b border-slate-800/80">
+            <!-- Selector de Entradas del Tornillo (Z1) -->
+            <div class="flex items-center justify-between gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-cyan-500/30">
+              <span class="text-xs font-bold text-cyan-400 whitespace-nowrap">Entradas Tornillo (Z₁):</span>
+              <div class="flex items-center gap-1.5" id="group-entries">
+                <button data-entries="1" class="btn-entry px-3 py-1 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-sm transition">1 entrada</button>
+                <button data-entries="2" class="btn-entry px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">2 entradas</button>
+                <button data-entries="3" class="btn-entry px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">3 entradas</button>
+              </div>
+            </div>
+
+            <!-- Control Deslizante de Dientes de la Corona (Z2) -->
+            <div class="flex items-center gap-3 bg-slate-900/80 p-2.5 rounded-xl border border-amber-500/30">
+              <span class="text-xs font-bold text-amber-400 whitespace-nowrap">Dientes Corona (Z₂):</span>
+              <input id="slider-z2" type="range" min="10" max="60" step="1" value="20" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500">
+              <div class="flex items-center gap-1.5">
+                <button id="btn-z2-dec" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">-</button>
+                <span id="val-z2" class="font-mono-code text-sm font-bold text-amber-300 w-8 text-center">20</span>
+                <button id="btn-z2-inc" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila de Reproducción, Velocidad del Motor y Filtros Visuales -->
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle" class="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold rounded-xl flex items-center gap-2 transition active:scale-95 shadow-md shadow-cyan-600/30">
+                <svg id="play-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                </svg>
+                <svg id="pause-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="btn-text">Pausar</span>
+              </button>
+
+              <button id="btn-reset" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-medium transition active:scale-95 flex items-center gap-2" title="Poner a cero los contadores">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span>Reiniciar Vueltas</span>
+              </button>
+            </div>
+
+            <!-- Velocidad N1 del motor acoplado al tornillo -->
+            <div class="flex items-center gap-3 flex-1 max-w-sm min-w-[220px]">
+              <span class="text-xs font-semibold text-slate-400 whitespace-nowrap">Velocidad N₁:</span>
+              <input id="slider-rpm" type="range" min="0" max="120" step="2" value="60" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+              <span id="slider-val" class="font-mono-code text-sm font-bold text-cyan-400 w-16 text-right">60 rpm</span>
+            </div>
+
+            <!-- Opciones didácticas -->
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-arrows" checked class="rounded border-slate-700 text-cyan-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Vectores de giro</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-mesh" checked class="rounded border-slate-700 text-cyan-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Resaltar contacto helicoidal</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Contadores de Vueltas Sincronizados -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Contador Tornillo sin Fin -->
+        <div class="bg-slate-900/90 border border-cyan-500/30 rounded-2xl p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-center text-xs text-cyan-400 font-bold uppercase tracking-wide mb-1">
+            <span id="label-card-z1">Vueltas Tornillo (Z₁=1)</span>
+            <span class="text-slate-400 font-normal">Giro Rápido</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <span id="counter-vueltas1" class="text-3xl font-extrabold font-mono-code text-cyan-400">0.00</span>
+            <span class="text-xs font-medium text-slate-400">vueltas: <b id="full-vueltas1" class="text-white text-base font-bold font-mono-code">0</b></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-vueltas1" class="bg-cyan-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Relación de Reducción en Directo -->
+        <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center">
+          <div class="text-xs text-indigo-300 font-bold uppercase tracking-wide mb-1">
+            Dientes avanzados en la corona
+          </div>
+          <div class="flex items-center gap-2 my-1">
+            <span class="text-xs text-slate-400 font-medium">Avance total:</span>
+            <span id="teeth-advanced" class="text-2xl font-black font-mono-code text-indigo-400">0.0</span>
+            <span class="text-xs text-slate-400 font-medium">dientes</span>
+          </div>
+          <p id="ratio-description" class="text-[11px] text-slate-400 leading-tight">
+            Cada 1 vuelta del tornillo avanza exactamente <b class="text-cyan-300">1 diente</b> de la corona.
+          </p>
+        </div>
+
+        <!-- Contador Corona Dentada -->
+        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between">
+          <div class="flex justify-between items-center text-xs text-amber-400 font-bold uppercase tracking-wide mb-1">
+            <span id="label-card-z2">Vueltas Corona (Z₂=20)</span>
+            <span class="text-slate-400 font-normal">Giro Muy Lento</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <span id="counter-vueltas2" class="text-3xl font-extrabold font-mono-code text-amber-400">0.00</span>
+            <span class="text-xs font-medium text-slate-400">vueltas: <b id="full-vueltas2" class="text-white text-base font-bold font-mono-code">0</b></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-vueltas2" class="bg-amber-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Física y Mecanismos (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Transmisión entre dos ejes perpendiculares que se cruzan en el espacio (90°).</p>
+        </div>
+
+        <!-- 1. Ley de Transmisión -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">1. Relación de Transmisión</span>
+            <span class="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full font-mono-code font-bold">i = Z₁ / Z₂</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            El tornillo actúa como un piñón con muy pocos dientes (tantos como hilos o entradas tenga su rosca, habitualmente <b>Z₁ = 1</b>).
+          </p>
+          <div class="mt-3 p-3 bg-slate-900 rounded-lg text-center font-mono-code text-sm border border-slate-800">
+            <span id="formula-calc" class="text-slate-200">
+              i = 1 / 20 = <span class="text-amber-400 font-bold">0.05</span>
+            </span>
+            <div class="text-[11px] text-slate-400 mt-1" id="formula-reduction-factor">
+              Factor de Reducción: <b>1 : 20</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Velocidad de la Corona (N2) -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">2. Velocidad de Salida (N₂)</span>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono-code text-xs text-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span>N₂ = N₁ · (Z₁ / Z₂)</span>
+              <span id="formula-n2-val" class="text-amber-400 font-bold">60 · (1/20) = 3.0 RPM</span>
+            </div>
+          </div>
+          <div class="mt-3 text-xs text-slate-300 space-y-2">
+            <div class="flex items-start gap-2">
+              <span class="text-cyan-400 font-bold">✓</span>
+              <span><b>Gran reducción en mínimo espacio:</b> En una sola etapa se logran reducciones enormes que con engranajes cilíndricos requerirían trenes de varios ejes.</span>
+            </div>
+            <div class="flex items-start gap-2">
+              <span class="text-amber-400 font-bold">⚡</span>
+              <span id="info-torque"><b>Multiplicación del Par Motor:</b> La corona gira <b class="text-white">20 veces más despacio</b>, pero entrega una fuerza/par motor <b class="text-amber-300">20 veces mayor</b> (ideal para ascensores, grúas y limpiaparabrisas).</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Propiedad Clave: Irreversibilidad -->
+        <div class="bg-rose-950/40 rounded-xl p-4 border border-rose-500/40">
+          <div class="flex items-center gap-2 text-rose-300 font-bold text-xs uppercase tracking-wider mb-2">
+            <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            3. Irreversibilidad (Seguridad Activa)
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Debido al pequeño ángulo de inclinación de la hélice y el rozamiento, el <b>tornillo puede mover a la corona</b>, pero <b>la corona NO puede hacer girar al tornillo</b>.
+          </p>
+          <div class="mt-2 text-[11px] bg-slate-950/70 p-2.5 rounded-lg border border-rose-500/20 text-rose-200">
+            <b>Ejemplo en la vida real:</b> En un <i>ascensor</i> o en la <i>clavija de afinación de una guitarra</i>, si se corta la corriente o se tensa la cuerda, el sistema no se desciende ni se desafina por sí solo.
+          </div>
+        </div>
+
+        <!-- Reto Guiado -->
+        <div class="bg-gradient-to-br from-cyan-950/40 to-slate-900 p-4 rounded-xl border border-cyan-500/30">
+          <h3 class="text-xs font-bold text-cyan-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span>💡 Preguntas para el examen de 3º ESO:</span>
+          </h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+            <li>Si el tornillo tiene <b class="text-cyan-300">1 entrada</b> y gira a 60 rpm, ¿cuántos dientes debe tener la corona para que gire a 1 rpm? (<span class="text-white font-mono-code font-bold">Z₂ = 60</span>).</li>
+            <li>¿Qué ocurre si seleccionas un tornillo de <b class="text-cyan-300">2 entradas</b>? Observa cómo la corona avanza el doble de rápido.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- PARÁMETROS CINEMÁTICOS ---
+    let Z1 = 1;          // Número de entradas del tornillo (1, 2 o 3)
+    let Z2 = 20;         // Dientes de la corona (10 a 60)
+    let rpm1 = 60.0;     // Velocidad del tornillo sin fin en RPM
+    let isRunning = true;
+
+    // Ángulos acumulados (radianes)
+    let angleWorm = 0;   // Rotación del tornillo
+    let angleGear = 0;   // Rotación de la corona
+
+    // Opciones visuales
+    let showArrows = true;
+    let showMesh = true;
+
+    // Elementos del DOM
+    const canvas = document.getElementById('wormGearCanvas');
+    const ctx = canvas.getContext('2d');
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnReset = document.getElementById('btn-reset');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+
+    const sliderRpm = document.getElementById('slider-rpm');
+    const sliderVal = document.getElementById('slider-val');
+    const labelRpm1 = document.getElementById('label-rpm1');
+    const labelRpm2 = document.getElementById('label-rpm2');
+    const headerZ1 = document.getElementById('header-z1');
+    const headerZ2 = document.getElementById('header-z2');
+    const labelCardZ1 = document.getElementById('label-card-z1');
+    const labelCardZ2 = document.getElementById('label-card-z2');
+
+    const sliderZ2 = document.getElementById('slider-z2');
+    const valZ2 = document.getElementById('val-z2');
+    const btnZ2Dec = document.getElementById('btn-z2-dec');
+    const btnZ2Inc = document.getElementById('btn-z2-inc');
+    const groupEntries = document.getElementById('group-entries');
+
+    const counterVueltas1 = document.getElementById('counter-vueltas1');
+    const fullVueltas1 = document.getElementById('full-vueltas1');
+    const progVueltas1 = document.getElementById('prog-vueltas1');
+    const counterVueltas2 = document.getElementById('counter-vueltas2');
+    const fullVueltas2 = document.getElementById('full-vueltas2');
+    const progVueltas2 = document.getElementById('prog-vueltas2');
+    const teethAdvanced = document.getElementById('teeth-advanced');
+    const ratioDescription = document.getElementById('ratio-description');
+
+    const badgeFactor = document.getElementById('badge-factor');
+    const formulaCalc = document.getElementById('formula-calc');
+    const formulaReductionFactor = document.getElementById('formula-reduction-factor');
+    const formulaN2Val = document.getElementById('formula-n2-val');
+    const infoTorque = document.getElementById('info-torque');
+
+    const chkArrows = document.getElementById('chk-arrows');
+    const chkMesh = document.getElementById('chk-mesh');
+
+    // Adaptación responsive del Canvas
+    let cw = 0, ch = 0;
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cw = rect.width;
+      ch = rect.height;
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Actualización de entradas del tornillo
+    groupEntries.querySelectorAll('.btn-entry').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupEntries.querySelectorAll('.btn-entry').forEach(b => {
+          b.className = 'btn-entry px-3 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-entry px-3 py-1 rounded-lg text-xs font-bold bg-cyan-600 text-white shadow-sm transition';
+        Z1 = parseInt(btn.getAttribute('data-entries'));
+        updateAllCalculations();
+      });
+    });
+
+    // Control de Dientes Corona
+    function setZ2(newZ2) {
+      Z2 = Math.max(10, Math.min(60, parseInt(newZ2)));
+      sliderZ2.value = Z2;
+      valZ2.textContent = Z2;
+      updateAllCalculations();
+    }
+    sliderZ2.addEventListener('input', (e) => setZ2(e.target.value));
+    btnZ2Dec.addEventListener('click', () => setZ2(Z2 - 1));
+    btnZ2Inc.addEventListener('click', () => setZ2(Z2 + 1));
+
+    // Velocidad del Tornillo
+    sliderRpm.addEventListener('input', (e) => {
+      rpm1 = parseFloat(e.target.value);
+      sliderVal.textContent = `${rpm1.toFixed(0)} rpm`;
+      updateAllCalculations();
+    });
+
+    // Checkboxes
+    chkArrows.addEventListener('change', (e) => { showArrows = e.target.checked; });
+    chkMesh.addEventListener('change', (e) => { showMesh = e.target.checked; });
+
+    // Play / Pausa y Reset
+    btnToggle.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        btnText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        lastTimestamp = performance.now();
+      } else {
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    });
+
+    btnReset.addEventListener('click', () => {
+      angleWorm = 0;
+      angleGear = 0;
+      updateMetrics();
+    });
+
+    function updateAllCalculations() {
+      const i_ratio = Z1 / Z2;
+      const reductionFactor = Z2 / Z1;
+      const rpm2 = rpm1 * i_ratio;
+
+      headerZ1.textContent = `Z₁ = ${Z1} ${Z1 === 1 ? 'entrada' : 'entradas'}`;
+      headerZ2.textContent = `Z₂ = ${Z2} dientes`;
+      labelCardZ1.textContent = `Vueltas Tornillo (Z₁=${Z1})`;
+      labelCardZ2.textContent = `Vueltas Corona (Z₂=${Z2})`;
+
+      labelRpm1.textContent = `${rpm1.toFixed(1)} RPM`;
+      labelRpm2.textContent = `${rpm2.toFixed(2)} RPM`;
+
+      badgeFactor.textContent = `1 : ${reductionFactor.toFixed(1).replace('.0', '')}`;
+      formulaCalc.innerHTML = `i = ${Z1} / ${Z2} = <span class="text-amber-400 font-bold">${i_ratio.toFixed(4)}</span>`;
+      formulaReductionFactor.innerHTML = `Factor de Reducción: <b>1 : ${reductionFactor.toFixed(1).replace('.0', '')}</b> (divide la velocidad por ${reductionFactor.toFixed(1).replace('.0', '')})`;
+      formulaN2Val.textContent = `${rpm1.toFixed(0)} · (${Z1}/${Z2}) = ${rpm2.toFixed(2)} RPM`;
+
+      infoTorque.innerHTML = `<b>Multiplicación del Par Motor:</b> La corona gira <b class="text-white">${reductionFactor.toFixed(1).replace('.0', '')} veces más despacio</b>, entregando una fuerza ${reductionFactor.toFixed(1).replace('.0', '')} veces superior.`;
+      ratioDescription.innerHTML = `Cada 1 vuelta completa del tornillo avanza exactamente <b class="text-cyan-300">${Z1} ${Z1 === 1 ? 'diente' : 'dientes'}</b> de la corona.`;
+
+      updateMetrics();
+    }
+
+    function updateMetrics() {
+      const turnsWorm = Math.abs(angleWorm) / (2 * Math.PI);
+      const turnsGear = Math.abs(angleGear) / (2 * Math.PI);
+      const advancedTeeth = turnsWorm * Z1;
+
+      counterVueltas1.textContent = turnsWorm.toFixed(2);
+      fullVueltas1.textContent = Math.floor(turnsWorm);
+      progVueltas1.style.width = `${((turnsWorm % 1) * 100).toFixed(1)}%`;
+
+      counterVueltas2.textContent = turnsGear.toFixed(2);
+      fullVueltas2.textContent = Math.floor(turnsGear);
+      progVueltas2.style.width = `${((turnsGear % 1) * 100).toFixed(1)}%`;
+
+      teethAdvanced.textContent = advancedTeeth.toFixed(1);
+    }
+
+    /**
+     * Dibuja la corona dentada vista de frente.
+     * GEOMETRÍA CORREGIDA: La altura del diente (addendum + dedendum) está estrictamente
+     * calibrada para encajar en el canal del filete sin sobrepasar el núcleo del tornillo.
+     */
+    function drawWormWheel(cx, cy, radius, teeth, angle, threadDepth) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+
+      // La altura total del diente equivale exactamente a la profundidad útil del filete
+      const toothHeight = threadDepth * 0.95;
+      const addendum = toothHeight * 0.48; // Sobresale hacia el tornillo hasta tocar el fondo del filete
+      const dedendum = toothHeight * 0.52; // Profundidad de la garganta del diente
+      const rootRadius = radius - dedendum;
+      const tipRadius = radius + addendum;
+      const shaftRadius = Math.max(14, radius * 0.22);
+
+      // Perfil dentado corto y compacto tipo corona helicoidal
+      ctx.beginPath();
+      const step = (Math.PI * 2) / teeth;
+      const halfTooth = (step * 0.42) / 2;
+      const halfTip = halfTooth * 0.62;
+
+      for (let k = 0; k < teeth; k++) {
+        const mid = k * step;
+        const a1 = mid - halfTooth * 1.25;
+        const a2 = mid - halfTooth;
+        const a3 = mid - halfTip;
+        const a4 = mid + halfTip;
+        const a5 = mid + halfTooth;
+        const a6 = mid + halfTooth * 1.25;
+
+        const p1 = { x: rootRadius * Math.cos(a1), y: rootRadius * Math.sin(a1) };
+        const p2 = { x: (radius - dedendum * 0.3) * Math.cos(a2), y: (radius - dedendum * 0.3) * Math.sin(a2) };
+        const p3 = { x: tipRadius * Math.cos(a3), y: tipRadius * Math.sin(a3) };
+        const p4 = { x: tipRadius * Math.cos(a4), y: tipRadius * Math.sin(a4) };
+        const p5 = { x: (radius - dedendum * 0.3) * Math.cos(a5), y: (radius - dedendum * 0.3) * Math.sin(a5) };
+        const p6 = { x: rootRadius * Math.cos(a6), y: rootRadius * Math.sin(a6) };
+
+        if (k === 0) ctx.moveTo(p1.x, p1.y);
+        else ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.lineTo(p5.x, p5.y);
+        ctx.lineTo(p6.x, p6.y);
+      }
+      ctx.closePath();
+
+      // Degradado bronce / dorado para corona de tornillo sin fin
+      const grad = ctx.createRadialGradient(0, 0, rootRadius * 0.2, 0, 0, tipRadius);
+      grad.addColorStop(0, '#f59e0b');
+      grad.addColorStop(0.7, '#d97706');
+      grad.addColorStop(1, '#92400e');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Aligeramientos si el tamaño lo permite
+      if (teeth >= 18) {
+        const holes = teeth >= 35 ? 6 : 4;
+        const holeDist = radius * 0.58;
+        const holeR = radius * 0.16;
+        for (let h = 0; h < holes; h++) {
+          const a = (h * Math.PI * 2) / holes;
+          ctx.beginPath();
+          ctx.arc(holeDist * Math.cos(a), holeDist * Math.sin(a), holeR, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // Eje central de la corona (eje de salida)
+      ctx.beginPath();
+      ctx.arc(0, 0, shaftRadius, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
+      ctx.fill();
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Aguja indicadora radial de referencia
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(tipRadius * 0.94, 0);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(tipRadius * 0.94, 0, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja el tornillo sin fin horizontal con avance helicoidal dinámico.
+     * threadDepth: Profundidad radial del filete de rosca (diferencia entre cresta y núcleo)
+     */
+    function drawWormScrew(x, y, width, rOuter, rRoot, angleWorm, entries, pitchPx) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      const halfW = width / 2;
+
+      // 1. Ejes laterales de soporte
+      const shaftExt = 45;
+      ctx.fillStyle = '#334155';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      
+      // Eje izquierdo
+      ctx.beginPath();
+      ctx.roundRect(-halfW - shaftExt, -rRoot * 0.55, shaftExt, rRoot * 1.1, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // Eje derecho
+      ctx.beginPath();
+      ctx.roundRect(halfW, -rRoot * 0.55, shaftExt, rRoot * 1.1, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      // 2. Núcleo cilíndrico del tornillo (fondo del canal)
+      const coreGrad = ctx.createLinearGradient(0, -rRoot, 0, rRoot);
+      coreGrad.addColorStop(0, '#0e7490');
+      coreGrad.addColorStop(0.4, '#06b6d4');
+      coreGrad.addColorStop(0.8, '#164e63');
+      coreGrad.addColorStop(1, '#083344');
+
+      ctx.beginPath();
+      ctx.rect(-halfW, -rRoot, width, rRoot * 2);
+      ctx.fillStyle = coreGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 3. Filetes de la rosca helicoidal
+      const totalLead = pitchPx * entries;
+      const phaseOffset = (angleWorm / (2 * Math.PI)) * totalLead;
+      const toothWidth = pitchPx * 0.45;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-halfW, -rOuter - 2, width, (rOuter + 2) * 2);
+      ctx.clip(); // Mantener los filetes en los límites del tornillo
+
+      const numThreads = Math.ceil(width / pitchPx) + 4;
+      const startX = -halfW - pitchPx * 2;
+
+      for (let i = 0; i < numThreads; i++) {
+        let threadX = startX + i * pitchPx + (phaseOffset % pitchPx);
+        const tilt = 8; // Inclinación helicoidal adaptada
+        
+        ctx.beginPath();
+        ctx.moveTo(threadX - toothWidth * 0.5 - tilt, -rOuter);
+        ctx.lineTo(threadX + toothWidth * 0.5 - tilt, -rOuter);
+        ctx.lineTo(threadX + toothWidth * 0.5 + tilt, rOuter);
+        ctx.lineTo(threadX - toothWidth * 0.5 + tilt, rOuter);
+        ctx.closePath();
+
+        const threadGrad = ctx.createLinearGradient(threadX, -rOuter, threadX, rOuter);
+        threadGrad.addColorStop(0, '#67e8f9');
+        threadGrad.addColorStop(0.5, '#06b6d4');
+        threadGrad.addColorStop(1, '#0e7490');
+
+        ctx.fillStyle = threadGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#cffafe';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Resalte de cresta superior
+        ctx.beginPath();
+        ctx.moveTo(threadX - toothWidth * 0.5 - tilt, -rOuter);
+        ctx.lineTo(threadX + toothWidth * 0.5 - tilt, -rOuter);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+
+      // Casquillos o rodamientos de los extremos
+      [-halfW - 8, halfW].forEach(kx => {
+        ctx.beginPath();
+        ctx.rect(kx, -rOuter * 0.9, 8, rOuter * 1.8);
+        ctx.fillStyle = '#475569';
+        ctx.fill();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.stroke();
+      });
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja flechas indicadoras de giro para ambos ejes ortogonales.
+     */
+    function drawOrthogonalArrows(wormX, wormY, wormW, gearX, gearY, gearR) {
+      ctx.save();
+
+      // Flecha de rotación del tornillo (Eje Horizontal)
+      ctx.strokeStyle = '#22d3ee';
+      ctx.fillStyle = '#22d3ee';
+      ctx.lineWidth = 3;
+
+      const arrowX = wormX - wormW / 2 - 25;
+      ctx.beginPath();
+      ctx.arc(arrowX, wormY, 16, Math.PI * 0.4, Math.PI * 1.6, false);
+      ctx.stroke();
+
+      // Punta flecha tornillo
+      ctx.beginPath();
+      ctx.moveTo(arrowX - 4, wormY + 16);
+      ctx.lineTo(arrowX + 8, wormY + 14);
+      ctx.lineTo(arrowX + 3, wormY + 24);
+      ctx.closePath();
+      ctx.fill();
+
+      // Flecha de rotación de la corona (Eje Vertical)
+      ctx.strokeStyle = '#fbbf24';
+      ctx.fillStyle = '#fbbf24';
+      ctx.lineWidth = 3;
+
+      const gRadius = gearR * 0.48;
+      ctx.beginPath();
+      ctx.arc(gearX, gearY, gRadius, Math.PI * 0.25, -Math.PI * 0.35, true);
+      ctx.stroke();
+
+      // Punta flecha corona
+      const endAngle = -Math.PI * 0.35;
+      const headX = gearX + gRadius * Math.cos(endAngle);
+      const headY = gearY + gRadius * Math.sin(endAngle);
+      ctx.beginPath();
+      ctx.moveTo(headX, headY);
+      ctx.lineTo(headX - 10, headY - 2);
+      ctx.lineTo(headX - 4, headY + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    let lastTimestamp = performance.now();
+
+    function renderLoop(currentTimestamp) {
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      // Cinemática
+      if (isRunning && dt > 0 && dt < 0.2) {
+        // Velocidad angular tornillo: w1 = 2 * PI * (RPM1 / 60)
+        const omega1 = 2 * Math.PI * (rpm1 / 60.0);
+        angleWorm += omega1 * dt;
+
+        // Velocidad angular corona: w2 = w1 * (Z1 / Z2)
+        const omega2 = omega1 * (Z1 / Z2);
+        angleGear += omega2 * dt;
+
+        updateMetrics();
+      }
+
+      // Limpiar Canvas
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Fondo técnico cuadriculado
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      ctx.lineWidth = 1;
+      const gridSize = 30;
+      for (let x = 0; x < cw; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      // Parámetros de escala geométrica según Z2
+      const maxAvailableHeight = ch * 0.62;
+      const pitchPx = Math.max(14, Math.min(26, maxAvailableHeight / (Z2 / 4.2 + 8)));
+      const gearRadius = (pitchPx * Z2) / (2 * Math.PI);
+
+      // DEFINICIÓN DE DIMENSIONES Y PROFUNDIDADES SIN INTERFERENCIA:
+      // La altura de los dientes y del filete están vinculadas a la misma profundidad de rosca
+      const threadDepth = pitchPx * 0.55;           // Profundidad real del canal de rosca
+      const wormOuterR = pitchPx * 0.95;            // Radio exterior del filete
+      const wormRootR = wormOuterR - threadDepth;   // Radio del núcleo cilíndrico
+      const wormWidth = Math.max(180, Math.min(300, cw * 0.38));
+
+      // POSICIONAMIENTO DE ENGRANE EXACTO:
+      // El círculo primitivo de la corona engrana en el radio primitivo del tornillo.
+      // La punta del diente de la corona llega justo al núcleo cilíndrico (rRoot) sin penetrar en él.
+      const gearCenterX = cw / 2;
+      const gearCenterY = (ch / 2) + (gearRadius * 0.35);
+      
+      // La distancia entre centros c = R_primitivo_corona + R_primitivo_tornillo
+      const wormCenterY = gearCenterY - gearRadius - (wormOuterR - threadDepth * 0.5);
+      const wormCenterX = gearCenterX;
+
+      // 1. Dibujar Corona Dentada con dientes cortos ajustados
+      drawWormWheel(gearCenterX, gearCenterY, gearRadius, Z2, angleGear, threadDepth);
+
+      // 2. Dibujar Tornillo sin Fin montado horizontalmente encima
+      drawWormScrew(wormCenterX, wormCenterY, wormWidth, wormOuterR, wormRootR, angleWorm, Z1, pitchPx);
+
+      // 3. Resaltar zona de engrane / contacto helicoidal
+      if (showMesh) {
+        const meshY = gearCenterY - gearRadius;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(gearCenterX, meshY, 15, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#f87171';
+        ctx.font = '600 11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Engrane Limpio en el Valle', gearCenterX, meshY - 18);
+        ctx.restore();
+      }
+
+      // 4. Vectores / flechas ortogonales
+      if (showArrows) {
+        drawDirectionArrowWorm(wormCenterX, wormCenterY, wormWidth, gearCenterX, gearCenterY, gearRadius);
+      }
+
+      // 5. Cotas de ejes perpendiculares (90°)
+      ctx.save();
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 5]);
+
+      // Eje del tornillo (Horizontal)
+      ctx.beginPath();
+      ctx.moveTo(wormCenterX - wormWidth / 2 - 40, wormCenterY);
+      ctx.lineTo(wormCenterX + wormWidth / 2 + 40, wormCenterY);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '500 11px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Eje Motriz 1 (Tornillo horizontal)', wormCenterX - wormWidth / 2 - 35, wormCenterY - 22);
+      ctx.fillText('Eje Conducido 2 (Corona vertical)', gearCenterX + 15, gearCenterY + gearRadius + 18);
+      ctx.restore();
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    function drawDirectionArrowWorm(wormX, wormY, wormW, gearX, gearY, gearR) {
+      ctx.save();
+
+      // Flecha de rotación del tornillo
+      ctx.strokeStyle = '#22d3ee';
+      ctx.fillStyle = '#22d3ee';
+      ctx.lineWidth = 3;
+
+      const arrowX = wormX - wormW / 2 - 25;
+      ctx.beginPath();
+      ctx.arc(arrowX, wormY, 14, Math.PI * 0.4, Math.PI * 1.6, false);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(arrowX - 4, wormY + 14);
+      ctx.lineTo(arrowX + 8, wormY + 12);
+      ctx.lineTo(arrowX + 3, wormY + 22);
+      ctx.closePath();
+      ctx.fill();
+
+      // Flecha de rotación de la corona
+      ctx.strokeStyle = '#fbbf24';
+      ctx.fillStyle = '#fbbf24';
+      ctx.lineWidth = 3;
+
+      const gRadius = gearR * 0.48;
+      ctx.beginPath();
+      ctx.arc(gearX, gearY, gRadius, Math.PI * 0.25, -Math.PI * 0.35, true);
+      ctx.stroke();
+
+      const endAngle = -Math.PI * 0.35;
+      const headX = gearX + gRadius * Math.cos(endAngle);
+      const headY = gearY + gRadius * Math.sin(endAngle);
+      ctx.beginPath();
+      ctx.moveTo(headX, headY);
+      ctx.lineTo(headX - 10, headY - 2);
+      ctx.lineTo(headX - 4, headY + 10);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // Inicializar cálculos y comenzar bucle
+    updateAllCalculations();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>

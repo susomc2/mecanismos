@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador 3D: Tornillo Sin Fin y Rueda Helicoidal</title>
+  <style>
+    :root {
+      --bg: #070a12;
+      --panel: rgba(15, 23, 42, 0.94);
+      --border: #334155;
+      --accent: #f59e0b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+    }
+    #canvas-container {
+      flex: 1;
+      height: 100vh;
+      position: relative;
+    }
+    #sidebar {
+      width: 340px;
+      background: var(--panel);
+      backdrop-filter: blur(12px);
+      border-left: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+    }
+    .val {
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .metrics {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .metric-card {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .metric-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #38bdf8;
+      font-variant-numeric: tabular-nums;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    button {
+      background: #1e293b;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    button:hover {
+      background: #334155;
+      border-color: var(--accent);
+    }
+    .legend {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 10px;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <aside id="sidebar">
+    <h1>Simulador 3D: Tornillo Sin Fin</h1>
+
+    <div class="control-group">
+      <div class="control-header">
+        <label for="rpmSlider">Velocidad del tornillo (n₁)</label>
+        <span id="rpmVal" class="val">45 RPM</span>
+      </div>
+      <input id="rpmSlider" type="range" min="-120" max="120" step="5" value="45" />
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <label for="teethSlider">Dientes del engranaje (Z₂)</label>
+        <span id="teethVal" class="val">24 dientes</span>
+      </div>
+      <input id="teethSlider" type="range" min="12" max="48" step="1" value="24" />
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <label for="helixSlider">Ángulo de hélice (β = γ)</label>
+        <span id="helixVal" class="val">15°</span>
+      </div>
+      <input id="helixSlider" type="range" min="6" max="25" step="1" value="15" />
+    </div>
+
+    <div class="metrics">
+      <div class="metric-card">
+        <span class="metric-label">Relación (i = Z₂/Z₁)</span>
+        <span id="ratioMetric" class="metric-value">24 : 1</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Vel. Engranaje (n₂)</span>
+        <span id="gearRpmMetric" class="metric-value">1.88 RPM</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Vel. Lineal Avance (vₓ)</span>
+        <span id="linearVelMetric" class="metric-value">+1.32 u/s</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Dist. entre Centros</span>
+        <span id="centerDistMetric" class="metric-value">5.48 u</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="btnContact">Zoom al Engrane</button>
+      <button id="btnFront">Vista Frontal</button>
+      <button id="btnSide">Perfil de Garganta</button>
+      <button id="btnPause">Pausar / Reanudar</button>
+    </div>
+
+    <div class="legend">
+      <strong>Diseño final limpio:</strong><br/>
+      • Engranaje ancho con garganta cóncava de radio exacto R₁.<br/>
+      • Tornillo sin fin y eje unificados en bronce mecanizado.<br/>
+      • Eje del engranaje con chaveta indicadora de giro (sin marca azul sobre la rueda).
+    </div>
+  </aside>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070a12);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 200);
+    camera.position.set(0, 6.5, 14);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 2.5, 0);
+    controls.enableDamping = true;
+
+    // Iluminación intensa para alto contraste sobre el fondo negro
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.8);
+    dirLight1.position.set(12, 18, 16);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x93c5fd, 1.2);
+    dirLight2.position.set(-14, 6, -12);
+    scene.add(dirLight2);
+
+    const dirLight3 = new THREE.DirectionalLight(0xfde68a, 0.9);
+    dirLight3.position.set(0, -15, 10);
+    scene.add(dirLight3);
+
+    const grid = new THREE.GridHelper(24, 24, 0x1e293b, 0x0f172a);
+    grid.position.y = -6.0;
+    scene.add(grid);
+
+    // Materiales
+    const wormMat = new THREE.MeshStandardMaterial({
+      color: 0xf59e0b, // Todo el tornillo (cuerpo, filetes y eje) del mismo bronce dorado
+      metalness: 0.65,
+      roughness: 0.25
+    });
+
+    const gearMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0, // Acero plata brillante
+      metalness: 0.55,
+      roughness: 0.28
+    });
+
+    const gearShaftMat = new THREE.MeshStandardMaterial({
+      color: 0x64748b, // Eje central del engranaje diferenciado
+      metalness: 0.7,
+      roughness: 0.25
+    });
+
+    const markerMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444, // Chaveta en el eje del engranaje para apreciar el giro
+      metalness: 0.3,
+      roughness: 0.4
+    });
+
+    const state = {
+      wormRPM: 45,
+      teeth: 24,
+      helixDeg: 15,
+      module: 0.35,
+      paused: false,
+      theta1: 0
+    };
+
+    let wormMesh = null;
+    let gearMesh = null;
+    let flowArrow = null;
+
+    /**
+     * Tornillo sin fin con perfil trapecial ACME realista y núcleo macizo del mismo color
+     */
+    function createWormGeometry(R1, module, wormLength) {
+      const radialSegs = 96;
+      const axialSegs = 320;
+      const geom = new THREE.CylinderGeometry(1, 1, wormLength, radialSegs, axialSegs, false);
+      geom.rotateZ(-Math.PI / 2);
+
+      const pos = geom.attributes.position;
+      const k = 2 / module;
+      const toothDepth = 0.92 * module;
+      const rootRadius = R1 - toothDepth;
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = pos.getZ(i);
+        const r = Math.hypot(y, z);
+
+        if (r > 0.001) {
+          const alpha = Math.atan2(z, -y);
+          const phase = k * x + alpha;
+
+          const triWave = (2 / Math.PI) * Math.asin(Math.cos(phase)) - 0.14;
+          const trapezoid = Math.max(-0.65, Math.min(0.65, triWave * 1.25)) / 0.65;
+
+          const edgeDist = (wormLength * 0.5) - Math.abs(x);
+          const taper = Math.max(0, Math.min(1, edgeDist / (module * 1.5)));
+
+          const newR = rootRadius + (R1 + trapezoid * toothDepth - rootRadius) * taper;
+          const ny = y / r;
+          const nz = z / r;
+          pos.setY(i, ny * newR);
+          pos.setZ(i, nz * newR);
+        }
+      }
+      geom.computeVertexNormals();
+      return geom;
+    }
+
+    /**
+     * Engranaje helicoidal ancho con garganta cóncava envolvente de radio R1
+     */
+    function createHelicalGearGeometry(R2, teeth, module, width, helixRad, R1) {
+      const radialSegs = teeth * 18;
+      const zSegs = 60;
+      const geom = new THREE.CylinderGeometry(1, 1, width, radialSegs, zSegs, false);
+      geom.rotateX(Math.PI / 2);
+
+      const pos = geom.attributes.position;
+      const toothDepth = 0.95 * module;
+      const tanBeta = Math.tan(helixRad);
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        const z = pos.getZ(i);
+        const r = Math.hypot(x, y);
+
+        if (r > 0.001) {
+          const u = Math.atan2(x, y);
+          const helixShift = (2 / module) * tanBeta * z;
+          const phase = teeth * u + helixShift;
+
+          const zClamped = Math.min(Math.abs(z), R1 * 0.95);
+          const throatEnvelope = R1 - Math.sqrt(R1 * R1 - zClamped * zClamped);
+          const localPitchRadius = R2 + throatEnvelope;
+
+          const triWave = (2 / Math.PI) * Math.asin(-Math.cos(phase)) - 0.14;
+          const toothProfile = (Math.max(-0.65, Math.min(0.65, triWave * 1.25)) / 0.65) * toothDepth;
+
+          const maxOuterRadius = R2 + toothDepth * 1.65;
+          const newR = Math.min(maxOuterRadius, localPitchRadius + toothProfile);
+
+          const nx = x / r;
+          const ny = y / r;
+          pos.setX(i, nx * newR);
+          pos.setY(i, ny * newR);
+        }
+      }
+      geom.computeVertexNormals();
+      return geom;
+    }
+
+    function rebuildMechanism() {
+      if (wormMesh) { scene.remove(wormMesh); wormMesh.geometry.dispose(); }
+      if (gearMesh) { scene.remove(gearMesh); gearMesh.geometry.dispose(); }
+      if (flowArrow) { scene.remove(flowArrow); }
+
+      const m = state.module;
+      const Z2 = state.teeth;
+      const betaRad = THREE.MathUtils.degToRad(state.helixDeg);
+
+      const R2 = (m * Z2) / 2;
+      const R1 = m / (2 * Math.tan(betaRad));
+
+      const gearWidth = Math.min(2.8, R1 * 1.75);
+      const gearGeom = createHelicalGearGeometry(R2, Z2, m, gearWidth, betaRad, R1);
+      gearMesh = new THREE.Mesh(gearGeom, gearMat);
+
+      // Cubo central (buje) del engranaje
+      const gearHub = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.1, 1.1, gearWidth + 0.3, 36).rotateX(Math.PI / 2),
+        gearMat
+      );
+
+      // Eje del engranaje sobresaliendo por ambos lados
+      const shaftRadius = 0.55;
+      const shaftLength = gearWidth + 2.6;
+      const gearShaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 36).rotateX(Math.PI / 2),
+        gearShaftMat
+      );
+
+      // Chaveta en el eje del engranaje para apreciar su rotación (sin la marca azul)
+      const keywayMarker = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.25, shaftLength + 0.06),
+        markerMat
+      );
+      keywayMarker.position.set(0, shaftRadius, 0);
+
+      gearMesh.add(gearHub, gearShaft, keywayMarker);
+      scene.add(gearMesh);
+
+      // Tornillo sin fin y su eje del mismo material bronce (wormMat)
+      const wormLength = 5.8;
+      const wormGeom = createWormGeometry(R1, m, wormLength);
+      wormMesh = new THREE.Mesh(wormGeom, wormMat);
+
+      const centerDist = R2 + R1 + 0.08 * m;
+      wormMesh.position.set(0, centerDist, 0);
+
+      const rootRadius = Math.max(0.35, R1 - 0.92 * m);
+      const wormShaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(rootRadius * 0.75, rootRadius * 0.75, wormLength + 2.8, 36).rotateZ(-Math.PI / 2),
+        wormMat
+      );
+      wormMesh.add(wormShaft);
+      scene.add(wormMesh);
+
+      const dir = state.wormRPM >= 0 ? 1 : -1;
+      flowArrow = new THREE.ArrowHelper(
+        new THREE.Vector3(dir, 0, 0),
+        new THREE.Vector3(-1.2 * dir, R2, gearWidth * 0.68),
+        2.4, 0x22c55e, 0.45, 0.3
+      );
+      scene.add(flowArrow);
+
+      updateSynchronization();
+      updateMetricsUI(R1, R2);
+    }
+
+    function updateSynchronization() {
+      if (!wormMesh || !gearMesh) return;
+      wormMesh.rotation.x = -state.theta1;
+      gearMesh.rotation.z = -state.theta1 / state.teeth;
+    }
+
+    function updateMetricsUI(R1, R2) {
+      const Z2 = state.teeth;
+      const n1 = state.wormRPM;
+      const n2 = n1 / Z2;
+      const omega1 = (n1 * 2 * Math.PI) / 60;
+      const vx = omega1 * (state.module / 2);
+
+      document.getElementById('rpmVal').textContent = `${n1} RPM`;
+      document.getElementById('teethVal').textContent = `${Z2} dientes`;
+      document.getElementById('helixVal').textContent = `${state.helixDeg}°`;
+      document.getElementById('ratioMetric').textContent = `${Z2} : 1`;
+      document.getElementById('gearRpmMetric').textContent = `${Math.abs(n2).toFixed(2)} RPM`;
+      document.getElementById('linearVelMetric').textContent = `${vx >= 0 ? '+' : ''}${vx.toFixed(2)} u/s`;
+      document.getElementById('centerDistMetric').textContent = `${(R1 + R2).toFixed(2)} u`;
+    }
+
+    document.getElementById('rpmSlider').addEventListener('input', (e) => {
+      state.wormRPM = parseFloat(e.target.value);
+      rebuildMechanism();
+    });
+
+    document.getElementById('teethSlider').addEventListener('input', (e) => {
+      state.teeth = parseInt(e.target.value, 10);
+      rebuildMechanism();
+    });
+
+    document.getElementById('helixSlider').addEventListener('input', (e) => {
+      state.helixDeg = parseFloat(e.target.value);
+      rebuildMechanism();
+    });
+
+    document.getElementById('btnContact').addEventListener('click', () => {
+      const R2 = (state.module * state.teeth) / 2;
+      camera.position.set(0, R2 + 0.6, 5.5);
+      controls.target.set(0, R2, 0);
+    });
+
+    document.getElementById('btnFront').addEventListener('click', () => {
+      const R2 = (state.module * state.teeth) / 2;
+      camera.position.set(0, R2 * 0.5, 14);
+      controls.target.set(0, R2 * 0.5, 0);
+    });
+
+    document.getElementById('btnSide').addEventListener('click', () => {
+      const R2 = (state.module * state.teeth) / 2;
+      camera.position.set(7.5, R2 + 0.4, 0.01);
+      controls.target.set(0, R2 + 0.4, 0);
+    });
+
+    document.getElementById('btnPause').addEventListener('click', () => {
+      state.paused = !state.paused;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    rebuildMechanism();
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = clock.getDelta();
+
+      if (!state.paused) {
+        const omega1 = (state.wormRPM * 2 * Math.PI) / 60;
+        state.theta1 += omega1 * dt;
+        updateSynchronization();
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>

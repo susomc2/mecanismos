@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador 3D de Engranajes Cónicos Opacos (Perfil Evolvente)</title>
+  <style>
+    :root {
+      --bg-panel: rgba(15, 20, 32, 0.92);
+      --border-panel: rgba(255, 255, 255, 0.14);
+      --accent-blue: #38bdf8;
+      --accent-gold: #fbbf24;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0b0f17;
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .ui-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 350px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-panel);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.65);
+      z-index: 10;
+    }
+
+    .ui-panel h1 {
+      font-size: 1.12rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+
+    .ui-panel p.subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .control-group {
+      margin-bottom: 14px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.84rem;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .badge-driver {
+      color: var(--accent-blue);
+      font-weight: 700;
+    }
+
+    .badge-driven {
+      color: var(--accent-gold);
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+    }
+
+    #z2-slider {
+      accent-color: var(--accent-gold);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.83rem;
+      margin: 9px 0;
+      cursor: pointer;
+      color: var(--text-main);
+    }
+
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+    }
+
+    .telemetry-title {
+      font-size: 0.73rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin: 14px 0 10px 0;
+      border-top: 1px solid var(--border-panel);
+      padding-top: 12px;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 9px;
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .metric-value {
+      font-size: 0.98rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hint-footer {
+      margin-top: 12px;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <div class="ui-panel">
+    <h1>Engranajes Cónicos (100% Opacos)</h1>
+    <p class="subtitle">Geometría maciza de evolvente con ejes fijos a 90°</p>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Dientes Conductor (<strong class="badge-driver">Z₁ - Eje X</strong>)</span>
+        <span id="z1-val" class="badge-driver">16</span>
+      </div>
+      <input type="range" id="z1-slider" min="10" max="40" step="1" value="16" />
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Dientes Conducido (<strong class="badge-driven">Z₂ - Eje Y</strong>)</span>
+        <span id="z2-val" class="badge-driven">24</span>
+      </div>
+      <input type="range" id="z2-slider" min="10" max="60" step="1" value="24" />
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Velocidad Conductor (RPM₁)</span>
+        <span id="rpm1-val">45 RPM</span>
+      </div>
+      <input type="range" id="rpm1-slider" min="0" max="120" step="1" value="45" />
+    </div>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="toggle-shafts" checked />
+      <span>Mostrar ejes de transmisión</span>
+    </label>
+
+    <label class="checkbox-row">
+      <input type="checkbox" id="toggle-cones" />
+      <span>Mostrar conos primitivos y vértice (0,0,0)</span>
+    </label>
+
+    <div class="telemetry-title">Parámetros Mecánicos (Módulo m = 4 mm)</div>
+    <div class="telemetry-grid">
+      <div class="metric-card">
+        <span class="metric-label">Relación (i = Z₂/Z₁)</span>
+        <span class="metric-value" id="out-ratio">1.50 : 1</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Salida (RPM₂)</span>
+        <span class="metric-value badge-driven" id="out-rpm2">30.0 RPM</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Ángulo Cono δ₁</span>
+        <span class="metric-value badge-driver" id="out-delta1">33.69°</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Ángulo Cono δ₂</span>
+        <span class="metric-value badge-driven" id="out-delta2">56.31°</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Diámetro d₁ / d₂</span>
+        <span class="metric-value" id="out-diam">64 / 96 mm</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">Generatriz (R)</span>
+        <span class="metric-value" id="out-cone-dist">57.69 mm</span>
+      </div>
+    </div>
+
+    <div class="hint-footer">
+      Arrastra con clic izquierdo para rotar · Rueda para zoom
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0b0f17);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 1, 2500);
+    camera.position.set(135, 95, 195);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(-15, -15, 0);
+
+    // --- Iluminación ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+    keyLight.position.set(160, 220, 180);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x93c5fd, 1.2);
+    fillLight.position.set(-160, -100, 140);
+    scene.add(fillLight);
+
+    const backLight = new THREE.DirectionalLight(0xfde68a, 1.0);
+    backLight.position.set(60, -180, -160);
+    scene.add(backLight);
+
+    const grid = new THREE.GridHelper(360, 36, 0x334155, 0x1e293b);
+    grid.position.y = -135;
+    scene.add(grid);
+
+    // --- Materiales 100% Opacos (DoubleSide + depthWrite garantizan cero transparencias) ---
+    const matDriverTeeth = new THREE.MeshStandardMaterial({
+      color: 0x2563eb,
+      metalness: 0.65,
+      roughness: 0.32,
+      side: THREE.DoubleSide,
+      transparent: false,
+       opacity: 1.0,
+      depthWrite: true,
+      depthTest: true,
+    });
+
+    const matDrivenTeeth = new THREE.MeshStandardMaterial({
+      color: 0x334155, // Acero templado oscuro como en la imagen real
+      metalness: 0.7,
+      roughness: 0.3,
+      side: THREE.DoubleSide,
+      transparent: false,
+      opacity: 1.0,
+      depthWrite: true,
+      depthTest: true,
+    });
+
+    const matMachinedSteel = new THREE.MeshStandardMaterial({
+      color: 0xcbd5e1,
+      metalness: 0.8,
+      roughness: 0.25,
+      side: THREE.DoubleSide,
+      transparent: false,
+      depthWrite: true,
+    });
+
+    const matShaft = new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      metalness: 0.75,
+      roughness: 0.28,
+      side: THREE.DoubleSide,
+      transparent: false,
+      depthWrite: true,
+    });
+
+    const matDarkHole = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      metalness: 0.3,
+      roughness: 0.7,
+      side: THREE.DoubleSide,
+      transparent: false,
+      depthWrite: true,
+    });
+
+    const matConeWire1 = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28,
+    });
+
+    const matConeWire2 = new THREE.MeshBasicMaterial({
+      color: 0xfbbf24,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28,
+    });
+
+    const state = {
+      Z1: 16,
+      Z2: 24,
+      rpm1: 45,
+      module: 4.0,
+      angle1: 0,
+      showShafts: true,
+      showCones: false,
+    };
+
+    // Contenedores de ejes fijos a 90 grados
+    const driverAxisHolder = new THREE.Group();
+    driverAxisHolder.rotation.set(0, 0, -Math.PI / 2);
+    scene.add(driverAxisHolder);
+
+    const drivenAxisHolder = new THREE.Group();
+    drivenAxisHolder.rotation.set(0, 0, 0);
+    scene.add(drivenAxisHolder);
+
+    const driverSpinGroup = new THREE.Group();
+    const drivenSpinGroup = new THREE.Group();
+    driverAxisHolder.add(driverSpinGroup);
+    drivenAxisHolder.add(drivenSpinGroup);
+
+    let driverShaftMesh = null;
+    let drivenShaftMesh = null;
+
+    const conesGroup = new THREE.Group();
+    scene.add(conesGroup);
+
+    /**
+     * Genera un sólido cerrado y macizo para la corona dentada con normales separadas
+     * para los flancos de los dientes y las tapas (evita artefactos de sombreado o caras transparentes).
+     */
+    function createSolidInvoluteCrownGeometry(Z, delta, R, module) {
+      const faceWidth = R * 0.34;
+      const sOuter = R;
+      const sInner = R - faceWidth;
+
+      const sinD = Math.sin(delta);
+      const cosD = Math.cos(delta);
+
+      const haOuter = 1.0 * module;
+      const hfOuter = 1.2 * module;
+      const rimDepthOuter = Math.max(module * 1.6, R * sinD * 0.32);
+
+      const samplesPerTooth = 24;
+      const totalPts = Z * samplesPerTooth;
+
+      function evaluateToothProfileNormalized(u) {
+        const absU = Math.abs(u);
+        const uTip = 0.125;
+        const uRoot = 0.38;
+
+        if (absU <= uTip) {
+          const t = absU / uTip;
+          return (haOuter * (1.0 - 0.04 * t * t)) / R;
+        } else if (absU <= uRoot) {
+          const t = (absU - uTip) / (uRoot - uTip);
+          const involute = Math.pow(1.0 - Math.pow(t, 1.35), 0.78);
+          const h = -hfOuter + (haOuter + hfOuter) * involute;
+          return h / R;
+        } else {
+          const t = (absU - uRoot) / (0.5 - uRoot);
+          const fillet = -hfOuter - 0.08 * module * Math.sin(t * Math.PI * 0.5);
+          return fillet / R;
+        }
+      }
+
+      const unitToothRing = [];
+      const unitBaseRing = [];
+      const hBaseNorm = (-hfOuter - rimDepthOuter) / R;
+
+      for (let i = 0; i < Z; i++) {
+        for (let j = 0; j < samplesPerTooth; j++) {
+          const u = (j / samplesPerTooth) - 0.5;
+          const theta = ((i + u) / Z) * Math.PI * 2;
+          const hNorm = evaluateToothProfileNormalized(u);
+
+          const radTooth = Math.max(0.02, sinD + hNorm * cosD);
+          const yTooth = -cosD + hNorm * sinD;
+
+          unitToothRing.push({
+            x: radTooth * Math.cos(theta),
+            y: yTooth,
+            z: radTooth * Math.sin(theta),
+          });
+
+          const radBase = Math.max(0.01, sinD + hBaseNorm * cosD);
+          const yBase = -cosD + hBaseNorm * sinD;
+
+          unitBaseRing.push({
+            x: radBase * Math.cos(theta),
+            y: yBase,
+            z: radBase * Math.sin(theta),
+          });
+        }
+      }
+
+      const positions = [];
+      const indices = [];
+
+      // Función auxiliar para añadir una tira cerrada de quads entre dos anillos con sus propios vértices
+      function addQuadStrip(ringA, scaleA, ringB, scaleB, flipWinding = false) {
+        const baseIdx = positions.length / 3;
+        for (let k = 0; k < totalPts; k++) {
+          const pA = ringA[k];
+          positions.push(pA.x * scaleA, pA.y * scaleA, pA.z * scaleA);
+        }
+        for (let k = 0; k < totalPts; k++) {
+          const pB = ringB[k];
+          positions.push(pB.x * scaleB, pB.y * scaleB, pB.z * scaleB);
+        }
+
+        for (let k = 0; k < totalPts; k++) {
+          const nextK = (k + 1) % totalPts;
+          const a = baseIdx + k;
+          const b = baseIdx + nextK;
+          const c = baseIdx + totalPts + nextK;
+          const d = baseIdx + totalPts + k;
+
+          if (!flipWinding) {
+            indices.push(a, b, c);
+            indices.push(a, c, d);
+          } else {
+            indices.push(a, c, b);
+            indices.push(a, d, c);
+          }
+        }
+      }
+
+      // 1. Superficie superior de los dientes y valles (desde sInner hasta sOuter)
+      addQuadStrip(unitToothRing, sInner, unitToothRing, sOuter, false);
+
+      // 2. Tapas de espalda cónica (back-cone en sOuter)
+      addQuadStrip(unitToothRing, sOuter, unitBaseRing, sOuter, false);
+
+      // 3. Superficie interior del anillo bajo los dientes
+      addQuadStrip(unitBaseRing, sOuter, unitBaseRing, sInner, false);
+
+      // 4. Tapas frontales de los dientes (front-cone en sInner)
+      addQuadStrip(unitBaseRing, sInner, unitToothRing, sInner, false);
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geo.setIndex(indices);
+      geo.computeVertexNormals();
+      return geo;
+    }
+
+    /**
+     * Construye el engranaje cónico completamente macizo y opaco con su eje
+     */
+    function createRealisticBevelGear(Z, delta, R, module, teethMaterial) {
+      const gearGroup = new THREE.Group();
+
+      // 1. Corona dentada maciza
+      const crownGeo = createSolidInvoluteCrownGeometry(Z, delta, R, module);
+      const crownMesh = new THREE.Mesh(crownGeo, teethMaterial);
+      gearGroup.add(crownMesh);
+
+      const sinD = Math.sin(delta);
+      const cosD = Math.cos(delta);
+      const faceWidth = R * 0.34;
+      const sInner = R - faceWidth;
+      const hfOuter = 1.2 * module;
+
+      // 2. Tronco de cono macizo de respaldo justo al nivel del fondo de los valles (dedendum)
+      // Garantiza que nunca pueda verse a través del valle entre dientes desde ningún ángulo
+      const rootRadOuter = Math.max(2, R * sinD - hfOuter * cosD * 1.02);
+      const rootRadInner = Math.max(1.5, sInner * sinD - (hfOuter * (sInner / R)) * cosD * 1.02);
+      const yRootOuter = -R * cosD - hfOuter * sinD;
+      const yRootInner = -sInner * cosD - (hfOuter * (sInner / R)) * sinD;
+      const rootConeHeight = Math.abs(yRootOuter - yRootInner);
+      const rootConeCenterY = 0.5 * (yRootOuter + yRootInner);
+
+      const solidRootConeGeo = new THREE.CylinderGeometry(
+        rootRadInner,
+        rootRadOuter,
+        rootConeHeight,
+        64
+      );
+      const solidRootConeMesh = new THREE.Mesh(solidRootConeGeo, teethMaterial);
+      solidRootConeMesh.position.y = rootConeCenterY;
+      gearGroup.add(solidRootConeMesh);
+
+      // 3. Núcleo metálico torneado y cuello cilíndrico inferior (hub) como en la foto
+      const hubRadius = Math.max(module * 2.1, R * sinD * 0.62);
+      const hubLength = Math.max(module * 3.8, R * 0.28);
+
+      const coreTopY = yRootInner - module * 0.1;
+      const coreBottomY = yRootOuter - hubLength;
+      const coreHeight = Math.abs(coreTopY - coreBottomY);
+      const coreCenterY = 0.5 * (coreTopY + coreBottomY);
+
+      const hubGeo = new THREE.CylinderGeometry(hubRadius * 0.94, hubRadius, coreHeight, 48);
+      const hubMesh = new THREE.Mesh(hubGeo, matMachinedSteel);
+      hubMesh.position.y = coreCenterY;
+      gearGroup.add(hubMesh);
+
+      // Tornillo prisionero lateral negro (set screw)
+      const screwRadius = Math.min(module * 0.65, hubLength * 0.28);
+      const screwGeo = new THREE.CylinderGeometry(screwRadius, screwRadius, hubRadius * 0.5, 20);
+      screwGeo.rotateZ(Math.PI / 2);
+      const screwMesh = new THREE.Mesh(screwGeo, matDarkHole);
+      screwMesh.position.set(hubRadius * 0.85, yRootOuter - hubLength * 0.5, 0);
+      gearGroup.add(screwMesh);
+
+      // Agujero central con chavetero
+      const boreRadius = hubRadius * 0.50;
+      const boreGeo = new THREE.CylinderGeometry(boreRadius, boreRadius, coreHeight + 0.8, 32);
+      const boreMesh = new THREE.Mesh(boreGeo, matDarkHole);
+      boreMesh.position.y = coreCenterY;
+      gearGroup.add(boreMesh);
+
+      // 4. Eje cilíndrico de transmisión
+      const shaftLength = 125;
+      const shaftRadius = boreRadius * 0.94;
+      const shaftGeo = new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 32);
+      const shaftMesh = new THREE.Mesh(shaftGeo, matShaft);
+      shaftMesh.position.y = coreBottomY - shaftLength * 0.5 + 12;
+      shaftMesh.visible = state.showShafts;
+      gearGroup.add(shaftMesh);
+
+      return { gearGroup, shaftMesh };
+    }
+
+    function rebuildGears() {
+      driverSpinGroup.clear();
+      drivenSpinGroup.clear();
+      conesGroup.clear();
+
+      const { Z1, Z2, module } = state;
+
+      const delta1 = Math.atan2(Z1, Z2);
+      const delta2 = Math.atan2(Z2, Z1);
+
+      const d1 = module * Z1;
+      const d2 = module * Z2;
+      const R = 0.5 * module * Math.hypot(Z1, Z2);
+
+      // Piñón Conductor (Z1) sobre su eje horizontal fijo X
+      const driverObj = createRealisticBevelGear(Z1, delta1, R, module, matDriverTeeth);
+      driverShaftMesh = driverObj.shaftMesh;
+      driverSpinGroup.add(driverObj.gearGroup);
+
+      // Corona Conducida (Z2) sobre su eje vertical fijo Y
+      const drivenObj = createRealisticBevelGear(Z2, delta2, R, module, matDrivenTeeth);
+      drivenShaftMesh = drivenObj.shaftMesh;
+      drivenSpinGroup.add(drivenObj.gearGroup);
+
+      // Conos primitivos de referencia
+      const h1 = R * Math.cos(delta1);
+      const rad1 = R * Math.sin(delta1);
+      const cone1Geo = new THREE.ConeGeometry(rad1, h1, 36, 1, true);
+      cone1Geo.translate(0, -h1 / 2, 0);
+      const cone1Mesh = new THREE.Mesh(cone1Geo, matConeWire1);
+      cone1Mesh.rotation.z = -Math.PI / 2;
+      conesGroup.add(cone1Mesh);
+
+      const h2 = R * Math.cos(delta2);
+      const rad2 = R * Math.sin(delta2);
+      const cone2Geo = new THREE.ConeGeometry(rad2, h2, 36, 1, true);
+      cone2Geo.translate(0, -h2 / 2, 0);
+      const cone2Mesh = new THREE.Mesh(cone2Geo, matConeWire2);
+      conesGroup.add(cone2Mesh);
+
+      const apexGeo = new THREE.SphereGeometry(2.4, 16, 16);
+      const apexMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+      conesGroup.add(new THREE.Mesh(apexGeo, apexMat));
+
+      conesGroup.visible = state.showCones;
+
+      // Actualizar métricas
+      const ratio = Z2 / Z1;
+      const rpm2 = state.rpm1 / ratio;
+
+      document.getElementById('z1-val').textContent = Z1;
+      document.getElementById('z2-val').textContent = Z2;
+      document.getElementById('rpm1-val').textContent = `${state.rpm1} RPM`;
+
+      document.getElementById('out-ratio').textContent = `${ratio.toFixed(2)} : 1`;
+      document.getElementById('out-rpm2').textContent = `${rpm2.toFixed(1)} RPM`;
+      document.getElementById('out-delta1').textContent = `${THREE.MathUtils.radToDeg(delta1).toFixed(2)}°`;
+      document.getElementById('out-delta2').textContent = `${THREE.MathUtils.radToDeg(delta2).toFixed(2)}°`;
+      document.getElementById('out-diam').textContent = `${d1.toFixed(0)} / ${d2.toFixed(0)} mm`;
+      document.getElementById('out-cone-dist').textContent = `${R.toFixed(2)} mm`;
+    }
+
+    // --- Eventos ---
+    document.getElementById('z1-slider').addEventListener('input', (e) => {
+      state.Z1 = parseInt(e.target.value, 10);
+      rebuildGears();
+    });
+
+    document.getElementById('z2-slider').addEventListener('input', (e) => {
+      state.Z2 = parseInt(e.target.value, 10);
+      rebuildGears();
+    });
+
+    document.getElementById('rpm1-slider').addEventListener('input', (e) => {
+      state.rpm1 = parseFloat(e.target.value);
+      const ratio = state.Z2 / state.Z1;
+      document.getElementById('rpm1-val').textContent = `${state.rpm1} RPM`;
+      document.getElementById('out-rpm2').textContent = `${(state.rpm1 / ratio).toFixed(1)} RPM`;
+    });
+
+    document.getElementById('toggle-shafts').addEventListener('change', (e) => {
+      state.showShafts = e.target.checked;
+      if (driverShaftMesh) driverShaftMesh.visible = state.showShafts;
+      if (drivenShaftMesh) drivenShaftMesh.visible = state.showShafts;
+    });
+
+    document.getElementById('toggle-cones').addEventListener('change', (e) => {
+      state.showCones = e.target.checked;
+      conesGroup.visible = state.showCones;
+    });
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    rebuildGears();
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const dt = clock.getDelta();
+      const omega1 = (state.rpm1 * 2 * Math.PI) / 60;
+      state.angle1 += omega1 * dt;
+
+      const ratio = state.Z1 / state.Z2;
+
+      driverSpinGroup.rotation.y = state.angle1;
+      drivenSpinGroup.rotation.y = -state.angle1 * ratio + (Math.PI / state.Z2);
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

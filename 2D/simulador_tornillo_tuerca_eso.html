@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Tornillo - Tuerca (Husillo) - Tecnología 3º ESO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .font-mono-code {
+      font-family: 'Fira Code', monospace;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 9999px;
+      background: #8b5cf6;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-purple-600 selection:text-white">
+
+  <!-- Cabecera Superior -->
+  <header class="bg-slate-900/90 border-b border-slate-800 backdrop-blur px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-purple-500/20 text-slate-950 font-black">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          Mecanismo Tornillo - Tuerca (Husillo)
+          <span class="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">3º ESO</span>
+        </h1>
+        <p class="text-xs text-slate-400">Tecnología y Digitalización · Transformación de Giro en Desplazamiento Rectilíneo de Gran Fuerza</p>
+      </div>
+    </div>
+
+    <!-- Distintivos del mecanismo -->
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <div class="flex items-center gap-2 bg-slate-950/80 px-3.5 py-1.5 rounded-xl border border-slate-800">
+        <span class="h-2.5 w-2.5 rounded-full bg-purple-400 animate-pulse"></span>
+        <span class="text-slate-300 font-medium">Modo Operativo:</span>
+        <span id="badge-op-mode" class="text-purple-400 font-bold uppercase tracking-wider text-[11px]">A) Tornillo Gira ➔ Tuerca Avanza</span>
+      </div>
+      <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5" title="Mecanismo autoblocante habitual">
+        🔒 Autoblocante (Irreversible)
+      </span>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 max-w-[1750px] w-full mx-auto">
+
+    <!-- Área de Simulación en Canvas -->
+    <div class="lg:col-span-8 flex flex-col gap-4">
+      <div class="relative bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 min-h-[520px] justify-between">
+        
+        <!-- Indicadores flotantes superiores del Canvas -->
+        <div class="absolute top-4 left-4 right-4 z-10 flex flex-wrap justify-between items-center gap-3 pointer-events-none">
+          <!-- Tarjeta Tornillo / Husillo -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-purple-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-purple-400 ring-4 ring-purple-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                Tornillo / Husillo Roscado <span id="screw-role-tag" class="text-[9px] bg-purple-500/20 px-1 rounded text-purple-300">MOTOR (GIRA)</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-pitch">Paso p = 2 mm</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-entries">1 Entrada</span>
+                <span class="text-slate-600">|</span>
+                <span id="label-rpm" class="text-purple-300 font-mono-code">20.0 RPM</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta Tuerca / Carro móvil -->
+          <div class="pointer-events-auto bg-slate-950/90 backdrop-blur border border-amber-500/40 rounded-xl px-4 py-2.5 shadow-lg flex items-center gap-3">
+            <div class="w-3.5 h-3.5 rounded-full bg-amber-400 ring-4 ring-amber-500/20"></div>
+            <div>
+              <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                Tuerca Rosca Interior <span id="nut-role-tag" class="text-[9px] bg-amber-500/20 px-1 rounded text-amber-300">AVANCE LINEAL</span>
+              </div>
+              <div class="text-sm font-extrabold text-white flex items-center gap-2">
+                <span id="header-lead">Avance L = 2.0 mm/v</span>
+                <span class="text-slate-600">|</span>
+                <span id="header-lin-speed" class="text-amber-300 font-mono-code">v = 0.67 mm/s</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="w-full h-full relative flex-1 flex items-center justify-center p-2 min-h-[400px]">
+          <canvas id="screwCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+        </div>
+
+        <!-- Barra de Control Inferior -->
+        <div class="bg-slate-950/95 border-t border-slate-800 p-4 px-6 flex flex-col gap-3.5 z-10">
+          
+          <!-- Fila 1 de Controles Cinemáticos -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3.5 pb-3 border-b border-slate-800/80">
+            <!-- Selector de Paso de Rosca (p) -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-purple-500/30">
+              <span class="text-xs font-bold text-purple-400 whitespace-nowrap">Paso (p):</span>
+              <div class="flex items-center gap-1 w-full justify-between" id="group-pitch">
+                <button data-p="1" class="btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">1 mm</button>
+                <button data-p="2" class="btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white shadow-sm transition">2 mm</button>
+                <button data-p="4" class="btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">4 mm</button>
+                <button data-p="6" class="btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">6 mm</button>
+              </div>
+            </div>
+
+            <!-- Número de Entradas (e) -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-purple-500/30">
+              <span class="text-xs font-bold text-purple-400 whitespace-nowrap">Entradas (e):</span>
+              <div class="flex items-center gap-1.5 w-full" id="group-entries">
+                <button data-e="1" class="btn-e flex-1 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white shadow-sm transition">1 hilo</button>
+                <button data-e="2" class="btn-e flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">2 hilos</button>
+              </div>
+            </div>
+
+            <!-- Selector de Modo Cinemático (A vs B) -->
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle-mode" class="w-full py-2 px-3 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/50 text-indigo-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5" title="Conmutar si gira el tornillo o gira la tuerca">
+                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <span id="mode-text-btn">Modo: Tornillo Gira ➔ Tuerca Avanza</span>
+              </button>
+            </div>
+
+            <!-- Modo de Visualización: Sólido vs Corte / Rayos X -->
+            <div class="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+              <span class="text-xs font-bold text-slate-300 whitespace-nowrap">Vista:</span>
+              <div class="flex items-center gap-1.5 w-full" id="group-view">
+                <button id="btn-view-solid" class="flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Sólida 3D</button>
+                <button id="btn-view-cut" class="flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow-sm transition">Corte Interno</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila 2 de Controles: Reproducción, Velocidad y Sentido de Giro -->
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+              <button id="btn-toggle" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl flex items-center gap-2 transition active:scale-95 shadow-md shadow-purple-600/30">
+                <svg id="play-icon" class="w-5 h-5 hidden" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>
+                </svg>
+                <svg id="pause-icon" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span id="btn-text">Pausar</span>
+              </button>
+
+              <button id="btn-direction" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-2" title="Alternar giro horario / antihorario">
+                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span id="dir-text">Giro Horario ↻ (Avanza ➔)</span>
+              </button>
+
+              <button id="btn-reset" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl font-medium transition active:scale-95 flex items-center gap-2" title="Poner a cero desplazamiento y vueltas">
+                <span>Puesta a Cero</span>
+              </button>
+            </div>
+
+            <!-- Slider de Velocidad N (RPM) -->
+            <div class="flex items-center gap-3 flex-1 max-w-sm min-w-[220px]">
+              <span class="text-xs font-semibold text-slate-400 whitespace-nowrap">Velocidad (N):</span>
+              <input id="slider-rpm" type="range" min="0" max="60" step="1" value="20" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500">
+              <span id="slider-val" class="font-mono-code text-sm font-bold text-purple-400 w-16 text-right">20 rpm</span>
+            </div>
+
+            <!-- Opciones de visualización adicionales -->
+            <div class="flex items-center gap-4 text-xs font-medium text-slate-400">
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-ruler" checked class="rounded border-slate-700 text-purple-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Regla milimetrada</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" id="chk-vectors" checked class="rounded border-slate-700 text-purple-600 focus:ring-0 bg-slate-800 cursor-pointer w-4 h-4">
+                <span>Vectores ω y v</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel de Telemetría Cinemática en Tiempo Real -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        
+        <!-- Tarjeta Vueltas Acumuladas -->
+        <div class="bg-slate-900/90 border border-purple-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-purple-400 font-bold uppercase tracking-wide mb-1">
+            <span>Rotación Acumulada</span>
+            <span id="tag-turns-dir" class="text-slate-400 font-normal">Giro Horario (↻)</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <span id="counter-vueltas" class="text-3xl font-extrabold font-mono-code text-purple-400">0.00</span>
+            <span class="text-xs font-medium text-slate-400">vueltas completas: <b id="full-vueltas" class="text-white text-base font-bold font-mono-code">0</b></span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-vueltas" class="bg-purple-500 h-full rounded-full transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta Desplazamiento Lineal (x) -->
+        <div class="bg-slate-900/90 border border-amber-500/30 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+          <div class="flex justify-between items-center text-xs text-amber-400 font-bold uppercase tracking-wide mb-1">
+            <span>Desplazamiento Lineal (x)</span>
+            <span class="text-slate-400 font-normal">Avance del carro</span>
+          </div>
+          <div class="flex items-baseline justify-between mt-2">
+            <div>
+              <span id="counter-pos-mm" class="text-3xl font-extrabold font-mono-code text-amber-400">0.0</span>
+              <span class="text-xs text-amber-300 font-semibold font-mono-code ml-1">mm</span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium font-mono-code">
+              (<span id="counter-pos-cm" class="text-slate-200 font-bold">0.00</span> cm)
+            </div>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="prog-travel" class="bg-amber-500 h-full rounded-full transition-all duration-75" style="width: 25%"></div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Avance por Vuelta (L) -->
+        <div class="bg-slate-900/90 border border-indigo-500/30 rounded-2xl p-4 flex flex-col justify-between items-center text-center shadow-lg">
+          <div class="text-xs text-indigo-300 font-bold uppercase tracking-wide mb-1">
+            Avance por Vuelta (L = p · e)
+          </div>
+          <div class="flex items-baseline gap-2 my-1">
+            <span id="counter-lead-turn" class="text-2xl font-black font-mono-code text-indigo-400">2.0</span>
+            <span class="text-xs text-slate-400 font-medium font-mono-code">mm / vuelta</span>
+          </div>
+          <p id="lead-description" class="text-[11px] text-slate-400 leading-tight">
+            Por cada <b class="text-white">1 vuelta completa</b> (360°), el desplazamiento axial es exactamente de <b class="text-amber-300 font-mono-code">2.0 mm</b>.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Columna Lateral: Panel Didáctico 3º ESO -->
+    <div class="lg:col-span-4 flex flex-col gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col gap-5 shadow-xl h-full custom-scrollbar overflow-y-auto">
+        
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            Fundamentos de Tecnología (3º ESO)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Transformación de movimiento circular en movimiento rectilíneo mediante plano inclinado enrollado.</p>
+        </div>
+
+        <!-- 1. Ecuación de Avance y Velocidad -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">1. Cinemática Lineal</span>
+            <span class="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full font-mono-code font-bold">x = L · Vueltas</span>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            El avance por vuelta ($L$) depende del <b>paso de rosca ($p$)</b> y del <b>número de entradas ($e$)</b>:
+          </p>
+          <div class="mt-3 p-3 bg-slate-900 rounded-lg text-center font-mono-code text-xs border border-slate-800 space-y-1">
+            <div class="text-slate-300">
+              L = <span class="text-purple-400">p</span> · <span class="text-indigo-400">e</span> &nbsp;|&nbsp; v = (<span class="text-purple-400">L</span> · <span class="text-amber-400">N</span>) / 60
+            </div>
+            <div id="formula-detail-v" class="text-purple-300 font-bold text-sm pt-1">
+              v = (2.0 · 20) / 60 = 0.67 mm/s
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Ventaja Mecánica y Gran Multiplicación de Fuerza -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-amber-400 uppercase tracking-wider block mb-2">2. Ventaja Mecánica (Gran Fuerza)</span>
+          <p class="text-xs text-slate-300 leading-relaxed mb-2">
+            Un tornillo es un <b>plano inclinado helicoidal</b>. Como el avance por vuelta ($L$) es muy pequeño comparado con la longitud de una vuelta completa ($2\pi R$), se produce una inmensa amplificación de la fuerza:
+          </p>
+          <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 font-mono-code text-xs text-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span>Ventaja Teórica = 2·π·R / L</span>
+              <span id="formula-force-ratio" class="text-amber-400 font-bold">~ 314 : 1</span>
+            </div>
+          </div>
+          <div class="mt-2 text-[11px] text-slate-400 leading-relaxed">
+            Con una fuerza muy suave con la mano en una manivela, el husillo puede elevar un coche entero o compactar piezas con toneladas de presión.
+          </div>
+        </div>
+
+        <!-- 3. Irreversibilidad y Autobloqueo -->
+        <div class="bg-emerald-950/40 rounded-xl p-4 border border-emerald-500/40">
+          <div class="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wider mb-2">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            3. Autoblocante (Seguridad)
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            En pasos pequeños ($p \le 4\text{ mm}$), el ángulo de la hélice es inferior al ángulo de rozamiento. Esto significa que <b>empujar la tuerca no hace girar el tornillo</b>.
+          </p>
+          <div class="mt-2 text-[11px] bg-slate-950/70 p-2.5 rounded-lg border border-emerald-500/20 text-emerald-200">
+            <b>Ejemplo escolar:</b> Si elevas un coche con el <i>gato mecánico</i> o aprietas una madera en el <i>tornillo de banco</i>, la carga jamás se afloja sola por el propio peso.
+          </div>
+        </div>
+
+        <!-- 4. Aplicaciones Tecnológicas en la Vida Real -->
+        <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800">
+          <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-2">4. Aplicaciones en la Industria y el Taller</span>
+          <div class="grid grid-cols-2 gap-2 text-[11px]">
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-white">🖨️ Impresoras 3D y CNC:</b> Husillos de avance milimétrico preciso en el eje Z.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-white">🗜️ Tornillo de banco:</b> Mordaza de sujeción para serrar y limar metales en el aula de taller.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-white">🚗 Gato mecánico de rombo:</b> Elevación de vehículos en caso de pinchazo.
+            </div>
+            <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+              <b class="text-white">🍷 Prensas y sacacorchos:</b> Transformación de giro en extracción lineal con gran par.
+            </div>
+          </div>
+        </div>
+
+        <!-- Reto para el alumnado -->
+        <div class="bg-gradient-to-br from-purple-950/40 to-slate-900 p-4 rounded-xl border border-purple-500/30">
+          <h3 class="text-xs font-bold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span>💡 Reto de clase:</span>
+          </h3>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            Cambia a <b class="text-purple-300">2 entradas</b>. Observa cómo, con las mismas 20 RPM, la velocidad de traslación se duplica instantáneamente porque cada vuelta abarca dos hilos a la vez.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // --- PARÁMETROS CINEMÁTICOS ---
+    let pitch_p = 2;          // Paso en mm (1, 2, 4, 6)
+    let entries_e = 1;        // Número de entradas (1 o 2)
+    let rpm = 20.0;           // Velocidad de giro en RPM
+    let direction = 1;        // 1: Horario (avanza a derecha), -1: Antihorario (retrocede a izquierda)
+    let isRunning = true;
+
+    // Modo cinemático:
+    // 'screw_rotates': Tornillo gira sobre su eje fijo, Tuerca avanza linealmente
+    // 'nut_rotates': Tuerca gira fija axialmente, Tornillo avanza linealmente
+    let opMode = 'screw_rotates';
+
+    // Modo de vista: 'solid' o 'cut' (corte interno / rayos X)
+    let viewMode = 'cut';
+
+    // Opciones visuales
+    let showRuler = true;
+    let showVectors = true;
+
+    // Estado físico acumulado
+    let rotationAngle = 0;    // Ángulo en radianes
+    let linearTravelMm = 0;   // Desplazamiento lineal acumulado en mm
+
+    // Referencias DOM
+    const canvas = document.getElementById('screwCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnReset = document.getElementById('btn-reset');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const btnText = document.getElementById('btn-text');
+    const btnDirection = document.getElementById('btn-direction');
+    const dirText = document.getElementById('dir-text');
+
+    const groupPitch = document.getElementById('group-pitch');
+    const groupEntries = document.getElementById('group-entries');
+    const btnToggleMode = document.getElementById('btn-toggle-mode');
+    const modeTextBtn = document.getElementById('mode-text-btn');
+    const badgeOpMode = document.getElementById('badge-op-mode');
+    const screwRoleTag = document.getElementById('screw-role-tag');
+    const nutRoleTag = document.getElementById('nut-role-tag');
+
+    const btnViewSolid = document.getElementById('btn-view-solid');
+    const btnViewCut = document.getElementById('btn-view-cut');
+
+    const sliderRpm = document.getElementById('slider-rpm');
+    const sliderVal = document.getElementById('slider-val');
+
+    const headerPitch = document.getElementById('header-pitch');
+    const headerEntries = document.getElementById('header-entries');
+    const headerLead = document.getElementById('header-lead');
+    const headerLinSpeed = document.getElementById('header-lin-speed');
+    const labelRpm = document.getElementById('label-rpm');
+
+    const counterVueltas = document.getElementById('counter-vueltas');
+    const fullVueltas = document.getElementById('full-vueltas');
+    const progVueltas = document.getElementById('prog-vueltas');
+    const tagTurnsDir = document.getElementById('tag-turns-dir');
+
+    const counterPosMm = document.getElementById('counter-pos-mm');
+    const counterPosCm = document.getElementById('counter-pos-cm');
+    const progTravel = document.getElementById('prog-travel');
+
+    const counterLeadTurn = document.getElementById('counter-lead-turn');
+    const leadDescription = document.getElementById('lead-description');
+    const formulaDetailV = document.getElementById('formula-detail-v');
+    const formulaForceRatio = document.getElementById('formula-force-ratio');
+
+    const chkRuler = document.getElementById('chk-ruler');
+    const chkVectors = document.getElementById('chk-vectors');
+
+    // Adaptación responsive del Canvas
+    let cw = 0, ch = 0;
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      cw = rect.width;
+      ch = rect.height;
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      ctx.resetTransform();
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Eventos de selección de Paso (p)
+    groupPitch.querySelectorAll('.btn-p').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupPitch.querySelectorAll('.btn-p').forEach(b => {
+          b.className = 'btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-p flex-1 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white shadow-sm transition';
+        pitch_p = parseInt(btn.getAttribute('data-p'));
+        updateCalculations();
+      });
+    });
+
+    // Eventos de Entradas (e)
+    groupEntries.querySelectorAll('.btn-e').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupEntries.querySelectorAll('.btn-e').forEach(b => {
+          b.className = 'btn-e flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        });
+        btn.className = 'btn-e flex-1 py-1 rounded-lg text-xs font-bold bg-purple-600 text-white shadow-sm transition';
+        entries_e = parseInt(btn.getAttribute('data-e'));
+        updateCalculations();
+      });
+    });
+
+    // Conmutador de Modos Cinemáticos
+    btnToggleMode.addEventListener('click', () => {
+      if (opMode === 'screw_rotates') {
+        opMode = 'nut_rotates';
+        modeTextBtn.textContent = "Modo: Tuerca Gira ➔ Tornillo Avanza";
+        badgeOpMode.textContent = "B) Tuerca Gira ➔ Tornillo Avanza";
+        screwRoleTag.textContent = "AVANCE LINEAL";
+        screwRoleTag.className = "text-[9px] bg-slate-800 px-1 rounded text-slate-400 border border-slate-700";
+        nutRoleTag.textContent = "MOTOR (GIRA)";
+        nutRoleTag.className = "text-[9px] bg-amber-500/20 px-1 rounded text-amber-300 border border-amber-500/40";
+      } else {
+        opMode = 'screw_rotates';
+        modeTextBtn.textContent = "Modo: Tornillo Gira ➔ Tuerca Avanza";
+        badgeOpMode.textContent = "A) Tornillo Gira ➔ Tuerca Avanza";
+        screwRoleTag.textContent = "MOTOR (GIRA)";
+        screwRoleTag.className = "text-[9px] bg-purple-500/20 px-1 rounded text-purple-300 border border-purple-500/40";
+        nutRoleTag.textContent = "AVANCE LINEAL";
+        nutRoleTag.className = "text-[9px] bg-slate-800 px-1 rounded text-slate-400 border border-slate-700";
+      }
+    });
+
+    // Conmutador de Vistas: Sólida vs Corte Interno
+    btnViewSolid.addEventListener('click', () => {
+      viewMode = 'solid';
+      btnViewSolid.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow-sm transition';
+      btnViewCut.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+    });
+    btnViewCut.addEventListener('click', () => {
+      viewMode = 'cut';
+      btnViewCut.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 shadow-sm transition';
+      btnViewSolid.className = 'flex-1 py-1 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+    });
+
+    // Control de Dirección de Giro
+    btnDirection.addEventListener('click', () => {
+      direction *= -1;
+      if (direction === 1) {
+        dirText.textContent = "Giro Horario ↻ (Avanza ➔)";
+        tagTurnsDir.textContent = "Giro Horario (↻)";
+      } else {
+        dirText.textContent = "Giro Antihorario ↺ (Retrocede ⬅)";
+        tagTurnsDir.textContent = "Giro Antihorario (↺)";
+      }
+      updateCalculations();
+    });
+
+    // Control de Velocidad RPM
+    sliderRpm.addEventListener('input', (e) => {
+      rpm = parseFloat(e.target.value);
+      sliderVal.textContent = `${rpm.toFixed(0)} rpm`;
+      updateCalculations();
+    });
+
+    // Checkboxes
+    chkRuler.addEventListener('change', (e) => { showRuler = e.target.checked; });
+    chkVectors.addEventListener('change', (e) => { showVectors = e.target.checked; });
+
+    // Play / Pause / Reset
+    btnToggle.addEventListener('click', () => {
+      isRunning = !isRunning;
+      if (isRunning) {
+        btnText.textContent = "Pausar";
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        lastTimestamp = performance.now();
+      } else {
+        btnText.textContent = "Reanudar";
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+      }
+    });
+
+    btnReset.addEventListener('click', () => {
+      rotationAngle = 0;
+      linearTravelMm = 0;
+      updateMetrics();
+    });
+
+    function updateCalculations() {
+      const leadPerTurn = pitch_p * entries_e; // Avance por vuelta en mm
+      const linearSpeed = (leadPerTurn * rpm) / 60.0; // mm/s
+
+      headerPitch.textContent = `Paso p = ${pitch_p} mm`;
+      headerEntries.textContent = `${entries_e} ${entries_e === 1 ? 'Entrada' : 'Entradas'}`;
+      headerLead.textContent = `Avance L = ${leadPerTurn.toFixed(1)} mm/v`;
+      headerLinSpeed.textContent = `v = ${linearSpeed.toFixed(2)} mm/s`;
+      labelRpm.textContent = `${rpm.toFixed(1)} RPM`;
+
+      counterLeadTurn.textContent = leadPerTurn.toFixed(1);
+      leadDescription.innerHTML = `Por cada <b class="text-white">1 vuelta completa</b> (360°), el desplazamiento axial es exactamente de <b class="text-amber-300 font-mono-code">${leadPerTurn.toFixed(1)} mm</b>.`;
+
+      formulaDetailV.textContent = `v = (${leadPerTurn.toFixed(1)} · ${rpm.toFixed(0)}) / 60 = ${linearSpeed.toFixed(2)} mm/s`;
+      
+      // Relación de fuerza teórica considerando manivela estándar de R=100mm
+      const forceRatio = Math.round((2 * Math.PI * 100) / leadPerTurn);
+      formulaForceRatio.textContent = `~ ${forceRatio} : 1`;
+
+      updateMetrics();
+    }
+
+    function updateMetrics() {
+      const turns = Math.abs(rotationAngle) / (2 * Math.PI);
+      counterVueltas.textContent = turns.toFixed(2);
+      fullVueltas.textContent = Math.floor(turns);
+      progVueltas.style.width = `${((turns % 1) * 100).toFixed(1)}%`;
+
+      counterPosMm.textContent = linearTravelMm.toFixed(2);
+      counterPosCm.textContent = (linearTravelMm / 10.0).toFixed(2);
+
+      // Barra de recorrido normalizada
+      const travelModulo = ((linearTravelMm % 100) + 100) % 100;
+      progTravel.style.width = `${travelModulo.toFixed(1)}%`;
+    }
+
+    /**
+     * Dibuja el husillo roscado horizontal con espiras helicoidales.
+     * En el modo de corte, dibuja los dientes trapezoidales superiores e inferiores.
+     * SINCRONIZACIÓN FÍSICA: Las crestas del tornillo se ubican en x = axialShift + k * pitchPx.
+     */
+    function drawLeadScrew(startX, endX, centerY, outerR, coreR, pitchPx, axialShift, isCutView) {
+      const screwLength = endX - startX;
+      ctx.save();
+
+      // 1. Núcleo cilíndrico interno del tornillo
+      const coreGrad = ctx.createLinearGradient(0, centerY - coreR, 0, centerY + coreR);
+      coreGrad.addColorStop(0, '#334155');
+      coreGrad.addColorStop(0.3, '#64748b');
+      coreGrad.addColorStop(0.7, '#475569');
+      coreGrad.addColorStop(1, '#1e293b');
+
+      ctx.fillStyle = coreGrad;
+      ctx.fillRect(startX, centerY - coreR, screwLength, coreR * 2);
+
+      if (!isCutView) {
+        // === VISTA SÓLIDA 3D ===
+        // Las espiras visibles avanzan axialmente al ritmo exacto de axialShift
+        const phase = ((axialShift % pitchPx) + pitchPx) % pitchPx;
+        const numThreads = Math.ceil(screwLength / pitchPx) + 4;
+        const toothHalfW = pitchPx * 0.22;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(startX, centerY - outerR - 2, screwLength, (outerR + 2) * 2);
+        ctx.clip();
+
+        for (let i = -3; i < numThreads; i++) {
+          const xCrest = startX + i * pitchPx + phase;
+
+          ctx.beginPath();
+          ctx.moveTo(xCrest - toothHalfW - 7, centerY - outerR);
+          ctx.lineTo(xCrest + toothHalfW - 7, centerY - outerR);
+          ctx.lineTo(xCrest + toothHalfW + 7, centerY + outerR);
+          ctx.lineTo(xCrest - toothHalfW + 7, centerY + outerR);
+          ctx.closePath();
+
+          const threadGrad = ctx.createLinearGradient(xCrest, centerY - outerR, xCrest, centerY + outerR);
+          threadGrad.addColorStop(0, '#93c5fd');
+          threadGrad.addColorStop(0.35, '#3b82f6');
+          threadGrad.addColorStop(0.75, '#1d4ed8');
+          threadGrad.addColorStop(1, '#1e3a8a');
+
+          ctx.fillStyle = threadGrad;
+          ctx.fill();
+          ctx.strokeStyle = '#bfdbfe';
+          ctx.lineWidth = 1.3;
+          ctx.stroke();
+
+          // Resalte de cresta
+          ctx.beginPath();
+          ctx.moveTo(xCrest - toothHalfW - 7, centerY - outerR);
+          ctx.lineTo(xCrest + toothHalfW - 7, centerY - outerR);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2.0;
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else {
+        // === VISTA DE CORTE LONGITUDINAL (RAYOS X) ===
+        // Perfil dentado trapezoidal superior e inferior del tornillo
+        // Crestas del tornillo en: x = k * pitchPx + axialShift
+        // Valles del tornillo en:  x = (k + 0.5) * pitchPx + axialShift
+        const halfCrest = pitchPx * 0.16; // Ancho plano en la cresta
+        const halfRoot = pitchPx * 0.34;  // Ancho en la base/raíz del diente
+
+        const kStart = Math.floor((startX - axialShift - pitchPx) / pitchPx);
+        const kEnd = Math.ceil((endX - axialShift + pitchPx) / pitchPx);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(startX, centerY - outerR - 2, screwLength, (outerR + 2) * 2);
+        ctx.clip();
+
+        ctx.fillStyle = '#2563eb';
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 1.5;
+
+        for (let k = kStart; k <= kEnd; k++) {
+          const xCrest = k * pitchPx + axialShift;
+
+          // Diente superior del tornillo (cresta en centerY - outerR)
+          ctx.beginPath();
+          ctx.moveTo(xCrest - halfRoot, centerY - coreR);
+          ctx.lineTo(xCrest - halfCrest, centerY - outerR);
+          ctx.lineTo(xCrest + halfCrest, centerY - outerR);
+          ctx.lineTo(xCrest + halfRoot, centerY - coreR);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Diente inferior del tornillo (cresta en centerY + outerR)
+          ctx.beginPath();
+          ctx.moveTo(xCrest - halfRoot, centerY + coreR);
+          ctx.lineTo(xCrest - halfCrest, centerY + outerR);
+          ctx.lineTo(xCrest + halfCrest, centerY + outerR);
+          ctx.lineTo(xCrest + halfRoot, centerY + coreR);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Extremos y soportes de cojinetes
+      [-1, 1].forEach(side => {
+        const xPos = side === -1 ? startX - 25 : endX;
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(xPos, centerY - coreR * 0.75, 25, coreR * 1.5);
+        ctx.strokeStyle = '#475569';
+        ctx.strokeRect(xPos, centerY - coreR * 0.75, 25, coreR * 1.5);
+      });
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja la tuerca exterior acoplada.
+     * EN CORTE TRANSVERSAL:
+     * - Las crestas del tornillo están en x = k * pitchPx + axialShift.
+     * - Por tanto, la tuerca sitúa los CENTROS DE SUS VALLES (huecos) en x = k * pitchPx + axialShift.
+     * - Las CRESTAS INTERNAS de la tuerca se sitúan en x = (k + 0.5) * pitchPx + axialShift,
+     *   alojándose limpiamente en los valles del tornillo sin solapamiento ni holguras.
+     */
+    function drawNut(nutCenterX, centerY, nutWidth, nutHeight, screwOuterR, screwCoreR, pitchPx, axialShift, isCutView) {
+      const halfW = nutWidth / 2;
+      const halfH = nutHeight / 2;
+
+      ctx.save();
+
+      if (!isCutView) {
+        // === VISTA SÓLIDA 3D ===
+        const nutGrad = ctx.createLinearGradient(0, centerY - halfH, 0, centerY + halfH);
+        nutGrad.addColorStop(0, '#fef08a');
+        nutGrad.addColorStop(0.3, '#f59e0b');
+        nutGrad.addColorStop(0.7, '#d97706');
+        nutGrad.addColorStop(1, '#78350f');
+
+        ctx.fillStyle = nutGrad;
+        ctx.beginPath();
+        ctx.roundRect(nutCenterX - halfW, centerY - halfH, nutWidth, nutHeight, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Chaflanes facetados
+        const facet1Y = centerY - halfH * 0.45;
+        const facet2Y = centerY + halfH * 0.45;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(nutCenterX - halfW, facet1Y);
+        ctx.lineTo(nutCenterX + halfW, facet1Y);
+        ctx.moveTo(nutCenterX - halfW, facet2Y);
+        ctx.lineTo(nutCenterX + halfW, facet2Y);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+        ctx.fillRect(nutCenterX - halfW, centerY - screwOuterR - 2, 8, (screwOuterR + 2) * 2);
+        ctx.fillRect(nutCenterX + halfW - 8, centerY - screwOuterR - 2, 8, (screwOuterR + 2) * 2);
+
+      } else {
+        // === VISTA EN CORTE INTERNO / RAYOS X CON PERFIL CONJUGADO ===
+        const nutLeft = nutCenterX - halfW;
+        const nutRight = nutCenterX + halfW;
+
+        const cutBodyGrad = ctx.createLinearGradient(0, centerY - halfH, 0, centerY + halfH);
+        cutBodyGrad.addColorStop(0, '#f59e0b');
+        cutBodyGrad.addColorStop(0.5, '#b45309');
+        cutBodyGrad.addColorStop(1, '#78350f');
+
+        // 1. Cuerpo base cortado de la tuerca (superior e inferior)
+        ctx.fillStyle = cutBodyGrad;
+        ctx.beginPath();
+        ctx.roundRect(nutLeft, centerY - halfH, nutWidth, halfH - screwOuterR, [8, 8, 0, 0]);
+        ctx.fill();
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.roundRect(nutLeft, centerY + screwOuterR, nutWidth, halfH - screwOuterR, [0, 0, 8, 8]);
+        ctx.fill();
+        ctx.stroke();
+
+        // 2. Dientes internos de la tuerca:
+        // Crestas internas en (k + 0.5) * pitchPx + axialShift (penetran hasta el radio coreR)
+        // Valles internos en k * pitchPx + axialShift (reciben la cresta del tornillo en outerR)
+        const halfNutCrest = pitchPx * 0.16; // Idéntico a la cresta del tornillo para simetría conjugada
+        const halfNutRoot = pitchPx * 0.34;
+
+        const kStart = Math.floor((nutLeft - axialShift - pitchPx) / pitchPx);
+        const kEnd = Math.ceil((nutRight - axialShift + pitchPx) / pitchPx);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(nutLeft, centerY - halfH - 2, nutWidth, nutHeight + 4);
+        ctx.clip();
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 1.5;
+
+        for (let k = kStart; k <= kEnd; k++) {
+          const xNutCrest = (k + 0.5) * pitchPx + axialShift;
+
+          // Diente interno superior (apunta hacia abajo, hasta coreR)
+          ctx.beginPath();
+          ctx.moveTo(xNutCrest - halfNutRoot, centerY - screwOuterR);
+          ctx.lineTo(xNutCrest - halfNutCrest, centerY - screwCoreR);
+          ctx.lineTo(xNutCrest + halfNutCrest, centerY - screwCoreR);
+          ctx.lineTo(xNutCrest + halfNutRoot, centerY - screwOuterR);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          // Diente interno inferior (apunta hacia arriba, hasta coreR)
+          ctx.beginPath();
+          ctx.moveTo(xNutCrest - halfNutRoot, centerY + screwOuterR);
+          ctx.lineTo(xNutCrest - halfNutCrest, centerY + screwCoreR);
+          ctx.lineTo(xNutCrest + halfNutCrest, centerY + screwCoreR);
+          ctx.lineTo(xNutCrest + halfNutRoot, centerY + screwOuterR);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        }
+
+        // Rayado de corte a 45°
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let lx = nutLeft - 30; lx < nutRight + 30; lx += 12) {
+          ctx.moveTo(lx, centerY - halfH);
+          ctx.lineTo(lx + 22, centerY - screwOuterR);
+          ctx.moveTo(lx, centerY + screwOuterR);
+          ctx.lineTo(lx + 22, centerY + halfH);
+        }
+        ctx.stroke();
+        ctx.restore();
+
+        // Rótulo de acoplamiento perfecto
+        ctx.fillStyle = '#fef08a';
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Engrane Perfecto: Cresta en Valle', nutCenterX, centerY - halfH - 12);
+      }
+
+      // Marcador vertical de posición sobre la regla
+      ctx.beginPath();
+      ctx.moveTo(nutCenterX, centerY + halfH);
+      ctx.lineTo(nutCenterX, centerY + halfH + 28);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([3, 3]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.beginPath();
+      ctx.moveTo(nutCenterX, centerY + halfH + 28);
+      ctx.lineTo(nutCenterX - 6, centerY + halfH + 20);
+      ctx.lineTo(nutCenterX + 6, centerY + halfH + 20);
+      ctx.closePath();
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja la regla graduada inferior en mm.
+     */
+    function drawRuler(baseY, originX, mmToPxScale) {
+      ctx.save();
+      const rulerHeight = 36;
+
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, baseY, cw, rulerHeight);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(0, baseY, cw, rulerHeight);
+
+      const startMm = Math.floor((-originX) / mmToPxScale / 5) * 5 - 20;
+      const endMm = Math.ceil((cw - originX) / mmToPxScale / 5) * 5 + 20;
+
+      ctx.font = '500 10px Fira Code, monospace';
+      ctx.textAlign = 'center';
+
+      for (let mm = startMm; mm <= endMm; mm += 5) {
+        const x = originX + mm * mmToPxScale;
+        if (x < 0 || x > cw) continue;
+
+        const isMajor = (mm % 20 === 0);
+        const isMedium = (mm % 10 === 0);
+        const tickH = isMajor ? 16 : (isMedium ? 10 : 5);
+
+        ctx.beginPath();
+        ctx.moveTo(x, baseY);
+        ctx.lineTo(x, baseY + tickH);
+        ctx.strokeStyle = isMajor ? '#fbbf24' : (isMedium ? '#94a3b8' : '#334155');
+        ctx.lineWidth = isMajor ? 1.8 : 1;
+        ctx.stroke();
+
+        if (isMajor) {
+          ctx.fillStyle = (mm === 0) ? '#38bdf8' : '#94a3b8';
+          ctx.fillText(`${mm}`, x, baseY + 26);
+        }
+      }
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 10px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Regla Milimétrica (mm)', 10, baseY + 24);
+
+      ctx.restore();
+    }
+
+    /**
+     * Dibuja los vectores cinemáticos de velocidad (ω rotación y v lineal).
+     */
+    function drawKinematicVectors(rotCenterX, rotCenterY, radius, linX, linY, isCW, linSign, rotatingPartName, translatingPartName) {
+      ctx.save();
+
+      // 1. Vector ω de rotación circular
+      ctx.strokeStyle = '#c084fc';
+      ctx.fillStyle = '#c084fc';
+      ctx.lineWidth = 3.5;
+      ctx.lineCap = 'round';
+
+      const arcStart = isCW ? Math.PI * 0.8 : Math.PI * 0.2;
+      const arcEnd = isCW ? -Math.PI * 0.2 : Math.PI * 1.2;
+
+      ctx.beginPath();
+      ctx.arc(rotCenterX, rotCenterY, radius, arcStart, arcEnd, !isCW);
+      ctx.stroke();
+
+      const ax = rotCenterX + radius * Math.cos(arcEnd);
+      const ay = rotCenterY + radius * Math.sin(arcEnd);
+      const tang = arcEnd + (isCW ? Math.PI / 2 : -Math.PI / 2);
+
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(ax - 9 * Math.cos(tang - Math.PI / 6), ay - 9 * Math.sin(tang - Math.PI / 6));
+      ctx.lineTo(ax - 9 * Math.cos(tang + Math.PI / 6), ay - 9 * Math.sin(tang + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.font = 'bold 12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`ω (${rotatingPartName})`, rotCenterX, rotCenterY - radius - 8);
+
+      // 2. Vector v de velocidad lineal
+      ctx.strokeStyle = '#f59e0b';
+      ctx.fillStyle = '#f59e0b';
+      ctx.lineWidth = 3.5;
+
+      const vLength = 55;
+      const vEndX = linX + (linSign * vLength);
+
+      ctx.beginPath();
+      ctx.moveTo(linX, linY);
+      ctx.lineTo(vEndX, linY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(vEndX, linY);
+      ctx.lineTo(vEndX - 10 * linSign, linY - 6);
+      ctx.lineTo(vEndX - 10 * linSign, linY + 6);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillText(`v (${translatingPartName})`, linX + (linSign * (vLength / 2)), linY - 8);
+
+      ctx.restore();
+    }
+
+    let lastTimestamp = performance.now();
+
+    function renderLoop(currentTimestamp) {
+      const dt = (currentTimestamp - lastTimestamp) / 1000;
+      lastTimestamp = currentTimestamp;
+
+      // Parámetros de escala gráfica
+      const mmToPx = 5.2; // 1 mm real = 5.2 px en pantalla
+      const pitchPx = Math.max(16, pitch_p * mmToPx);
+      const leadPerTurn = pitch_p * entries_e; // mm por vuelta
+
+      // FÍSICA CINEMÁTICA ESTRICTA:
+      // Avance lineal (mm) = (vueltas acumuladas) * (L) * sentido
+      // Avance lineal (px) = linearTravelMm * mmToPx
+      if (isRunning && dt > 0 && dt < 0.2) {
+        const omega = 2 * Math.PI * (rpm / 60.0); // rad/s
+        rotationAngle += direction * omega * dt;
+
+        const linSign = (direction === 1) ? 1 : -1;
+        const mmPerSecond = (leadPerTurn * rpm) / 60.0;
+        linearTravelMm += linSign * mmPerSecond * dt;
+
+        updateMetrics();
+      }
+
+      ctx.clearRect(0, 0, cw, ch);
+
+      // Fondo técnico cuadriculado
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < cw; x += 32) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, ch);
+        ctx.stroke();
+      }
+      for (let y = 0; y < ch; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(cw, y);
+        ctx.stroke();
+      }
+
+      const centerY = ch * 0.42;
+      const screwOuterR = 34;
+      const screwCoreR = 24;
+      const nutWidth = Math.max(110, pitchPx * 4.2);
+      const nutHeight = 84;
+
+      const totalScrewLength = cw * 0.82;
+      const originX = cw * 0.28; // Posición de x = 0 mm en pantalla
+
+      // UNIFICACIÓN CINEMÁTICA EXACTA:
+      // El avance lineal en píxeles tanto de la tuerca como del filete helicoidal
+      const displacementPx = linearTravelMm * mmToPx;
+
+      let screwStartX, screwEndX, nutCenterX, screwAxialShift, nutAxialShift;
+
+      if (opMode === 'screw_rotates') {
+        // MODO A: Tornillo fijo en pantalla (gira sobre sí mismo), Tuerca se desplaza
+        screwStartX = cw * 0.09;
+        screwEndX = screwStartX + totalScrewLength;
+        nutCenterX = originX + displacementPx;
+
+        // Las crestas del tornillo avanzan axialmente al girar:
+        screwAxialShift = displacementPx;
+        // La tuerca se mueve a la par con el tornillo; sus valles coinciden con screwAxialShift
+        nutAxialShift = displacementPx;
+      } else {
+        // MODO B: Tuerca fija en pantalla (gira sobre sí misma), Tornillo se desplaza
+        nutCenterX = cw * 0.5;
+        screwStartX = (cw * 0.5 - totalScrewLength / 2) + displacementPx;
+        screwEndX = screwStartX + totalScrewLength;
+
+        // La posición del tornillo se desplaza en bloque con displacementPx
+        screwAxialShift = displacementPx;
+        nutAxialShift = displacementPx;
+      }
+
+      // 1. Dibujar Tornillo / Husillo (en vista sólida o corte interno)
+      drawLeadScrew(screwStartX, screwEndX, centerY, screwOuterR, screwCoreR, pitchPx, screwAxialShift, viewMode === 'cut');
+
+      // 2. Dibujar Tuerca (en vista sólida o corte interno conjugado)
+      drawNut(nutCenterX, centerY, nutWidth, nutHeight, screwOuterR, screwCoreR, pitchPx, nutAxialShift, viewMode === 'cut');
+
+      // 3. Regla milimetrada inferior
+      const rulerY = ch - 50;
+      if (showRuler) {
+        drawRuler(rulerY, originX, mmToPx);
+      }
+
+      // 4. Vectores cinemáticos ω y v
+      if (showVectors && rpm > 0) {
+        const isCW = (direction === 1);
+        const linSign = (direction === 1) ? 1 : -1;
+
+        if (opMode === 'screw_rotates') {
+          drawKinematicVectors(
+            screwStartX + 40, centerY, screwOuterR * 0.75,
+            nutCenterX, centerY - nutHeight / 2 - 18,
+            isCW, linSign, 'Tornillo Gira', 'Tuerca Avanza'
+          );
+        } else {
+          drawKinematicVectors(
+            nutCenterX, centerY, nutHeight * 0.65,
+            screwEndX - 20, centerY - screwOuterR - 18,
+            isCW, linSign, 'Tuerca Gira', 'Tornillo Avanza'
+          );
+        }
+      }
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // Inicializar cálculos y comenzar la animación
+    updateCalculations();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>
